@@ -1,0 +1,106 @@
+{
+  "model": "claude-sonnet",
+  "backend": "claude_cli",
+  "model_id": "claude-sonnet-5-5",
+  "effort": "medium",
+  "variant": "no_quality_hint",
+  "started_utc": "2026-10-17T15:52:01+00:00",
+  "duration_s": 118.8,
+  "temperature": null,
+  "max_turns": 60,
+  "hit_turn_limit": false,
+  "n_model_calls": 13,
+  "n_tool_calls": 12,
+  "usage": {
+    "usage": {
+      "input_tokens": 26,
+      "cache_creation_input_tokens": 25247,
+      "cache_read_input_tokens": 237522,
+      "output_tokens": 9322,
+      "output_tokens_details": {
+        "thinking_tokens": 2424
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 25247,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1462,
+          "cache_read_input_tokens": 29934,
+          "cache_creation_input_tokens": 1993,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 1993
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {
+      "claude-haiku-5-5": {
+        "inputTokens": 2596,
+        "outputTokens": 22,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.00027059999999999996,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5-5": {
+        "inputTokens": 26,
+        "outputTokens": 9322,
+        "cacheReadInputTokens": 237522,
+        "cacheCreationInputTokens": 25247,
+        "webSearchRequests": 0,
+        "costUSD": 0.2180122,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 2424,
+        "canonicalModel": "claude-sonnet-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "total_cost_usd": 0.2182828,
+    "duration_api_ms": 73369,
+    "permission_denials": 0
+  },
+  "prompt_sha256": "b188104761d6ce71",
+  "data_sha256": {
+    "batches.csv": "0de4aeaac3b44801",
+    "suppliers.csv": "e2a0f7092046164d",
+    "maintenance.csv": "01a6b5eb337d89f8"
+  },
+  "dataset_version": "v3",
+  "seed": 42,
+  "versions": {
+    "python": "3.13.16",
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "scipy": "1.18.1",
+    "statsmodels": "0.15.0",
+    "matplotlib": "3.11.2",
+    "openai": "3.32.0",
+    "claude_code": "2.1.302 (Claude Code)"
+  },
+  "served_models": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ]
+}
