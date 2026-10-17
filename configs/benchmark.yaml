@@ -3,16 +3,22 @@ seed: 42
 n_runs: 5
 temperature: 1.0   # provider default; we measure typical behaviour, not a cherry-picked greedy run
 
-# Each trap can be switched off for ablation runs (a no-trap variant should score ~1.0).
-# The final list is fixed in Stage 1 (task design).
+dataset:
+  n_batches: 3000
+
+# Each trap (docs/task_design.md, section 4) can be switched off for ablation runs;
+# a variant without traps should score ~1.0. Missing names default to on, unknown names fail.
 traps:
-  hidden_missing: true
-  mixed_units: true
-  inconsistent_labels: true
-  duplicates: true
-  nonlinear_effect: true
-  leakage_column: true
-  simpson_paradox: true
+  duplicates: true           # T1
+  hidden_missing: true       # T2
+  mixed_units: true          # T3
+  inconsistent_labels: true  # T4
+  aggregation: true          # T5
+  nonlinear_effect: true     # T6
+  confounding: true          # T7
+  leakage: true              # T8
+  simpson_paradox: true      # T9
+  regime_change: true        # T10
 
 models:
   - name: claude-sonnet

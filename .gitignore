@@ -153,3 +153,5 @@ __pycache__/
 venv/
 .pytest_cache/
 *.egg-info/
+data_notraps/
+eval/ground_truth_notraps.json

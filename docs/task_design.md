@@ -118,6 +118,23 @@ Section weights: Describe 0.30, Salient 0.40, Interpret 0.30. A missing or unpar
 - Likely failed: C1 (Simpson), C2 (if humidity was dismissed).
 - Expected total: 0.4-0.7. If a model scores 1.0, add difficulty (for example, a second regime change or an interaction effect). If it scores ~0, check the prompt for ambiguity before blaming the model.
 
-## 8. Contamination protection
+## 8. Ablation semantics
 
-Data are synthetic and seeded, and every file carries a canary GUID. A fresh variant (new seed, permuted parameters) can be generated at any time.
+Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). All random draws happen whatever the switches are ("common random numbers"), so a variant differs from the full task only in the switched-off trap.
+
+| Trap off | Effect on data | Effect on answer key |
+|---|---|---|
+| duplicates | no repeated rows | A1 naive = truth |
+| hidden_missing | the same readings are missing, encoded as empty | A2 naive = truth |
+| mixed_units | L3 in °C | A4 naive closer to truth |
+| inconsistent_labels | canonical `Day`/`Night`, `SP-0x` | none |
+| aggregation | same batch-size distribution on all lines | A3 naive ≈ truth |
+| nonlinear_effect | humidity effect linear and decreasing | C2 truth = 75 (upper bound of the range) |
+| confounding | machine age and ambient temperature independent of line and mold | none |
+| leakage | leakage columns not published | B2 truth = empty set |
+| simpson_paradox | supplier allocation independent of line | C1 naive = truth |
+| regime_change | no level shift | B3 truth = null |
+
+## 9. Contamination protection
+
+Data are synthetic and seeded. The canary GUID is in `data/CANARY.txt` and `eval/ground_truth.json`, but not inside the CSVs, where a comment line would break `read_csv` and act as an unintended trap. A fresh variant (new seed, permuted parameters) can be generated at any time.

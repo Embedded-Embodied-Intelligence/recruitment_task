@@ -18,5 +18,9 @@
 ## Quickstart
 ```bash
 make install
-make test
+make test          # generator reproducibility, trap injection, planted effects detectable
+make data          # data/batches.csv, data/suppliers.csv + eval/ground_truth.json
+make data-notraps  # ablation variant without traps
 ```
+
+`eval/ground_truth.json` is the answer key. Only `data/` and `task/prompt.md` are given to the model.

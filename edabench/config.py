@@ -21,6 +21,7 @@ class BenchmarkConfig:
     n_runs: int
     temperature: float
     traps: dict[str, bool]
+    n_batches: int = 3000
     models: list[ModelSpec] = field(default_factory=list)
 
 
@@ -35,5 +36,6 @@ def load_config(path: str | Path) -> BenchmarkConfig:
         n_runs=int(raw["n_runs"]),
         temperature=float(raw["temperature"]),
         traps=dict(raw["traps"]),
+        n_batches=int(raw.get("dataset", {}).get("n_batches", 3000)),
         models=models,
     )
