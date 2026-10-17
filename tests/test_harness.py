@@ -233,3 +233,13 @@ def test_missing_analysis_library_stops_the_runner(monkeypatch):
     monkeypatch.setattr(runner, "missing_libraries", lambda: ["statsmodels"])
     with pytest.raises(SystemExit, match="statsmodels"):
         runner.main(["--check", "claude-haiku"])
+
+
+def test_provider_fields_of_tool_calls_are_sent_back():
+    """Gemini rejects a follow-up request whose tool call lacks its thought_signature."""
+    call = _tool_call(1, "print(1)")
+    call.model_extra = {"extra_content": {"google": {"thought_signature": "SIG"}}}
+    client = ScriptedClient([_response(tool_calls=[call]), _response(content="done")])
+    run_openai_compatible(api_spec(), "PROMPT", [], 0.0, client=client)
+    echoed = client.calls[1]["messages"][1]["tool_calls"][0]
+    assert echoed["extra_content"] == {"google": {"thought_signature": "SIG"}}

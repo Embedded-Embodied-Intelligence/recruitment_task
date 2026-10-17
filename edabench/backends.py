@@ -122,9 +122,12 @@ def run_openai_compatible(spec: ModelSpec, prompt: str, files: list[Path], tempe
             msg = resp.choices[0].message
             entry = {"role": "assistant", "content": msg.content or ""}
             if msg.tool_calls:
+                # Provider fields such as Gemini's extra_content.google.thought_signature
+                # must be sent back with the call, or the next request is rejected.
                 entry["tool_calls"] = [
                     {"id": tc.id, "type": "function",
-                     "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                     "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                     **(getattr(tc, "model_extra", None) or {})}
                     for tc in msg.tool_calls
                 ]
             messages.append(entry)
