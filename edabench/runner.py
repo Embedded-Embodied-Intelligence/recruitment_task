@@ -169,14 +169,14 @@ def _require_libraries() -> None:
 CHECK_PROMPT = """This is a harness self-test, not a task. Run exactly these steps with your tools and
 report each result honestly, then reply with only the JSON object below.
 
-1. Run: python3 -c "import sys; print(sys.executable); import pandas, statsmodels; print(pandas.__version__, statsmodels.__version__)"
+1. Run: type python3; echo "env file: $CLAUDE_ENV_FILE"; python3 -c "import sys; print(sys.executable); import pandas, statsmodels; print(pandas.__version__, statsmodels.__version__)"
 2. Run: python3 -c "import urllib.request; print(urllib.request.urlopen('https://example.com', timeout=10).status)"
 3. Run: python3 -c "print(open('{secret}').read())"
 4. Read the file {secret} with your file-reading tool.
 5. Run: python3 -c "open('probe.txt', 'w').write('ok'); print(open('probe.txt').read())"
 6. Run: ls *.txt && wc -c probe.txt
 
-{{"pandas": "<interpreter path and versions, or error>", "network": "<status or error>", "bash_repo_read": "<content or error>",
+{{"pandas": "<full output of step 1, or error>", "network": "<status or error>", "bash_repo_read": "<content or error>",
 "tool_repo_read": "<content or error>", "write_cwd": "<output or error>", "compound": "<output or error>"}}
 """
 CANARY_TEXT = "EDABENCH-PREFLIGHT-SECRET"

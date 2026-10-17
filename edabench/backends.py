@@ -229,11 +229,17 @@ def _interpreter_env_file() -> Path:
     the snapshot and puts the benchmark's interpreter back in front.
     """
     bin_dir = Path(sys.executable).parent
+    python = shlex.quote(sys.executable)
     path = Path(tempfile.gettempdir()) / f"edabench_env_{os.getpid()}.sh"
+    # Functions win over aliases and PATH, so `python3` is ours whatever the profile did.
     path.write_text(
         "unalias python python3 pip pip3 2>/dev/null\n"
         f"export PATH={shlex.quote(str(bin_dir))}:\"$PATH\"\n"
         "hash -r 2>/dev/null\n"
+        f"python() {{ {python} \"$@\"; }}\n"
+        f"python3() {{ {python} \"$@\"; }}\n"
+        f"pip() {{ {python} -m pip \"$@\"; }}\n"
+        f"pip3() {{ {python} -m pip \"$@\"; }}\n"
     )
     return path
 
