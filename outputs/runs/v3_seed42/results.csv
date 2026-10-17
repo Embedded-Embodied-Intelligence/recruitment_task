@@ -1,0 +1,2 @@
+model,variant,run,total,describe,salient_features,interpret,format_ok,equal_weight_total,n_tool_calls,duration_s,hit_turn_limit,permission_denials,served_models,q_A1,trap_A1,q_A2,trap_A2,q_A3,trap_A3,q_A4,trap_A4,q_B1,trap_B1,q_B2,trap_B2,q_B3,trap_B3,q_C1,trap_C1,q_C2,trap_C2,q_C3,trap_C3
+claude-haiku,full,run_01,0.939997,1.0,0.835294,0.989467,True,0.9569211,35,592.5,False,0,claude-haiku-5-5,1.0,False,1.0,False,1.0,False,1.0,False,0.6,,1.0,,1.0,,1.0,False,1.0,False,0.969211,False
