@@ -256,3 +256,11 @@ def test_tool_call_after_the_final_nudge_is_retried_not_an_infrastructure_error(
     stuck = ScriptedClient([_response(tool_calls=[_tool_call(1, "print(1)")]), refused, refused, refused])
     r = run_openai_compatible(api_spec(max_turns=1), "task", FILES, 1.0, client=stuck)
     assert (r.text, r.error) == ("", None)        # scored as no answer, not skipped
+
+
+def test_malformed_tool_call_rejected_by_the_provider_costs_a_turn():
+    rejected = RuntimeError("Error code: 400 - Failed to parse tool call arguments as JSON (tool_use_failed)")
+    client = ScriptedClient([rejected, _response(tool_calls=[_tool_call(1, "print(2)")]), _response(content="final")])
+    r = run_openai_compatible(api_spec(), "task", FILES, 1.0, client=client)
+    assert (r.text, r.error, r.n_model_calls) == ("final", None, 3)
+    assert "not valid JSON" in client.calls[1]["messages"][-1]["content"]

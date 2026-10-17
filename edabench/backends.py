@@ -56,12 +56,15 @@ FINAL_ANSWER_NUDGE = (
     "answer in the required format, based on what you have found so far."
 )
 TEXT_ONLY_NUDGE = "Tools are no longer available. Do not call any tool: reply with text only."
+BAD_CALL_NOTE = ('Your last tool call was rejected because its arguments were not valid JSON. '
+                 'Call run_python again with arguments like {"code": "print(1)"}.')
 # Extra requests for the final answer when a model still tries to call a tool after the
 # nudge. Some providers (Groq) reject such a reply with a 400 instead of returning it.
 FINAL_ANSWER_RETRIES = 2
 
 
-def _is_forbidden_tool_call(error: Exception) -> bool:
+def _is_rejected_tool_call(error: Exception) -> bool:
+    """The provider refused the model's own tool call (Groq: 400 tool_use_failed)."""
     text = str(error)
     return "tool_use_failed" in text or "Tool choice is none" in text
 
@@ -122,11 +125,11 @@ def run_openai_compatible(spec: ModelSpec, prompt: str, files: list[Path], tempe
                     **({} if last else {"tools": [RUN_PYTHON_TOOL], "tool_choice": "auto"}),
                 )
             except Exception as e:  # provider errors end the run; the log keeps the reason
-                if last and _is_forbidden_tool_call(e):
-                    # The model's own failure to answer, not the provider's: the run is
-                    # scored (no answer) unless a retry gets the text.
+                if _is_rejected_tool_call(e):
+                    # The model's own malformed call, not a provider failure: it costs a
+                    # turn, and at the end the run is scored (no answer) if no text comes.
                     result.n_model_calls += 1
-                    messages.append({"role": "user", "content": TEXT_ONLY_NUDGE})
+                    messages.append({"role": "user", "content": TEXT_ONLY_NUDGE if last else BAD_CALL_NOTE})
                     continue
                 result.error = f"{type(e).__name__}: {e}"
                 break
