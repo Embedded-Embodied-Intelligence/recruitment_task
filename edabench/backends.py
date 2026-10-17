@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -219,10 +220,29 @@ def claude_command(spec: ModelSpec, prompt: str, claude_bin: str = "claude",
     return cmd
 
 
+def _interpreter_env_file() -> Path:
+    """A script Claude Code sources before every Bash command (CLAUDE_ENV_FILE).
+
+    The Bash tool replays a snapshot of the user's shell profile, so a profile that puts
+    Homebrew or pyenv first on PATH, or aliases python3, would hand the model a different
+    interpreter than ours (seen on macOS: pandas without statsmodels). This file runs after
+    the snapshot and puts the benchmark's interpreter back in front.
+    """
+    bin_dir = Path(sys.executable).parent
+    path = Path(tempfile.gettempdir()) / f"edabench_env_{os.getpid()}.sh"
+    path.write_text(
+        "unalias python python3 pip pip3 2>/dev/null\n"
+        f"export PATH={shlex.quote(str(bin_dir))}:\"$PATH\"\n"
+        "hash -r 2>/dev/null\n"
+    )
+    return path
+
+
 def claude_env() -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_EFFORT_LEVEL", "ANTHROPIC_MODEL")}
     # `python3` in the run is the benchmark's own interpreter, with the pinned libraries.
     env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+    env["CLAUDE_ENV_FILE"] = str(_interpreter_env_file())
     env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1"
     env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] = "1"
     env["MPLBACKEND"] = "Agg"
