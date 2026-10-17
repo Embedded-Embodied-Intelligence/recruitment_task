@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
 import shlex
 import subprocess
@@ -58,7 +59,16 @@ def prepare_dataset(cfg: BenchmarkConfig, out_root: Path) -> tuple[Path, list[Pa
     ds = generate(cfg.seed, cfg.traps, cfg.n_batches)
     root = out_root / dataset_tag(cfg, ds.ground_truth["dataset_version"])
     data_dir, truth_path = root / "_data", root / "_ground_truth.json"
-    write(ds, data_dir, truth_path)
+    # Several runners (one per model) may start at once: files are written to a temporary
+    # directory and moved into place only if they differ, so no run copies a half-written file.
+    root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=root) as tmp:
+        write(ds, Path(tmp) / "_data", Path(tmp) / "_ground_truth.json")
+        data_dir.mkdir(exist_ok=True)
+        for new in [*(Path(tmp) / "_data").iterdir(), Path(tmp) / "_ground_truth.json"]:
+            dest = (data_dir if new.parent.name == "_data" else root) / new.name
+            if not dest.exists() or dest.read_bytes() != new.read_bytes():
+                os.replace(new, dest)
     return root, [data_dir / f for f in INPUT_FILES], json.loads(truth_path.read_text())
 
 
