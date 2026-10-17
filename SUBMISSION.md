@@ -61,6 +61,15 @@ v3 → v4 was driven by the v3 transcripts. Models never checked date formats, h
 - **Isolation.** Each `claude -p` run runs in an OS sandbox with no network, cannot read the repository or the answer key, and gets no memory, hooks or MCP servers. `python -m edabench.runner --check <model>` verifies this on the machine it runs on.
 - **Repeats.** Every model runs several times and the report gives the run-to-run sd. A single run of Sonnet could have scored 0.88 or 0.985.
 
+## Beyond the four deliverables
+
+- **Results explorer:** `docs/explorer.html`, one self-contained page (open it in a browser, no install). It shows the score of every model on every question, how often each trap was hit, the failure findings with links to the runs behind them, the calibration history, and each run's answers next to the truth with its full response. Rebuild it with `make explorer`.
+- **Datasheet:** `docs/datasheet.md` documents the dataset in the *Datasheets for Datasets* format: motivation, composition, the generating process, intended uses, contamination and versions.
+- **CI:** `.github/workflows/ci.yml` runs the tests on every push. It also regenerates the data and the answer key and fails if a byte changes, and re-runs the reference notebook, which must still score at least 0.98.
+- **A generator, not a fixed file:** any seed gives a fresh instance with the same structure, and every trap can be switched off on its own for ablations.
+- **A reusable harness:** `edabench.runner` runs any `claude -p` model or OpenAI-compatible API in a sandbox, repeats runs, and records library versions. `--check` proves the isolation on the machine it runs on.
+- **Evidence of fairness:** tests on 10 seeds show that every answer can be recovered from the published files alone. A red-team prompt (`docs/red_team_prompt.md`) collected trap ideas from five other LLMs.
+
 ## Known limitations
 
 - **Strong models still score above 0.9.** v4 meets the requirement (a score strictly between 0 and 1) but not my own target band of 0.3-0.7.
@@ -79,10 +88,11 @@ v3 → v4 was driven by the v3 transcripts. Models never checked date formats, h
 ## Reproduce
 
 ```bash
-make install && make test          # 105+ tests: generator, traps, reference, scorer, harness
+make install && make test          # 111 tests: generator, traps, reference, scorer, harness, explorer
 make data && make reference        # regenerate data/ and the answer key; expert notebook scores 0.989
 python -m edabench.scorer outputs/runs/v4_seed42/claude-sonnet/full/run_05/response.md
 python -m edabench.runner --check claude-haiku     # isolation preflight
 python -m edabench.runner --model claude-sonnet --variant full --runs 5
 python -m edabench.report outputs/runs/v4_seed42
+make explorer                      # rebuild docs/explorer.html
 ```
