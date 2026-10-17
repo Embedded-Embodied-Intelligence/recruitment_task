@@ -46,6 +46,8 @@ models:
     model_id: claude-opus-5-5
     effort: medium
     max_turns: 60
+  # Not benchmarked on v4: the free tier allows 20 requests a day for this model (2026-10-17),
+  # and one run needs up to 60. Kept for a paid key.
   - name: gemini-flash
     backend: openai_compatible
     model_id: gemini-3.8-flash
