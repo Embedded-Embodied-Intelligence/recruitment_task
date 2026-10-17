@@ -146,7 +146,25 @@ def run_benchmark(cfg: BenchmarkConfig, models: list[ModelSpec], variants: list[
     return root
 
 
-# --- preflight for claude -p ---------------------------------------------------------
+# --- preflight -------------------------------------------------------------------------
+
+# Every model runs its code with this interpreter, so a missing library would change what
+# the benchmark measures (pilot 02 in the app had no statsmodels and scored 0.87 vs 0.98).
+ANALYSIS_LIBRARIES = ("numpy", "pandas", "scipy", "statsmodels", "matplotlib")
+
+
+def missing_libraries(names=ANALYSIS_LIBRARIES) -> list[str]:
+    import importlib.util
+
+    return [n for n in names if importlib.util.find_spec(n) is None]
+
+
+def _require_libraries() -> None:
+    missing = missing_libraries()
+    if missing:
+        sys.exit(f"{sys.executable} lacks {', '.join(missing)}. Activate the benchmark venv and run "
+                 f"pip install -e \".[dev,notebook,harness]\" before benchmarking.")
+
 
 CHECK_PROMPT = """This is a harness self-test, not a task. Run exactly these steps with your tools and
 report each result honestly, then reply with only the JSON object below.
@@ -207,6 +225,7 @@ def main(argv: list[str] | None = None) -> None:
 
     cfg = load_config(args.config)
     by_name = {m.name: m for m in cfg.models}
+    _require_libraries()
     if args.check:
         sys.exit(check_claude(by_name[args.check]))
     unknown = set(args.model or []) - set(by_name)

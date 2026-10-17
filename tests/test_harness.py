@@ -218,3 +218,13 @@ def test_prompt_variant_drops_only_the_quality_hint():
     assert len(full) - len(ablated) == len(QUALITY_HINT)
     with pytest.raises(ValueError):
         render_prompt(variant="nope")
+
+
+def test_missing_analysis_library_stops_the_runner(monkeypatch):
+    from edabench import runner
+
+    assert runner.missing_libraries() == []
+    assert runner.missing_libraries(("pandas", "no_such_library_xyz")) == ["no_such_library_xyz"]
+    monkeypatch.setattr(runner, "missing_libraries", lambda: ["statsmodels"])
+    with pytest.raises(SystemExit, match="statsmodels"):
+        runner.main(["--check", "claude-haiku"])
