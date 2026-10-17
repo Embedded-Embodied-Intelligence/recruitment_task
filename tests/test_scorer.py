@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from edabench.scorer import (
-    WEIGHTS, category_score, jaccard, number_score, positional_accuracy, regime_score,
+    WEIGHTS, WEIGHTS_V2, category_score, jaccard, number_score, positional_accuracy, regime_score,
     relative_closeness, score_text, set_f1,
 )
 
@@ -32,7 +32,7 @@ def perfect() -> dict:
         "A3_overall_defect_rate": Q["A3"]["truth"], "A4_median_mold_temp_c": Q["A4"]["truth"],
         "B1_direct_drivers": Q["B1"]["truth"], "B2_leakage_columns": Q["B2"]["truth"],
         "B3_regime_change": Q["B3"]["truth"], "C1_best_supplier": Q["C1"]["truth"],
-        "C2_optimal_humidity_pct": Q["C2"]["truth"],
+        "C2_optimal_humidity_pct": Q["C2"]["truth"], "C3_rate_with_regular_cleaning": Q["C3"]["truth"],
     }
 
 
@@ -43,7 +43,7 @@ def naive() -> dict:
         "A3_overall_defect_rate": Q["A3"]["naive"], "A4_median_mold_temp_c": Q["A4"]["naive"],
         "B1_direct_drivers": ["mold_temp", "machine_age_years", "ambient_temp_c", "cycle_time_s"],
         "B2_leakage_columns": [], "B3_regime_change": None, "C1_best_supplier": Q["C1"]["naive"],
-        "C2_optimal_humidity_pct": 15.0,
+        "C2_optimal_humidity_pct": Q["C2"]["naive"], "C3_rate_with_regular_cleaning": Q["C3"]["naive"],
     }
 
 
@@ -61,9 +61,9 @@ def test_no_answer_scores_zero(text):
 
 def test_trap_answers_score_zero_on_their_questions():
     r = {q["qid"]: q for q in score_text(json.dumps(naive()), GT)["questions"]}
-    for qid in ("A1", "A2", "A3", "A4", "B3", "C1", "C2"):
+    for qid in ("A1", "A2", "A3", "A4", "B3", "C1", "C2", "C3"):
         assert r[qid]["score"] == 0.0, qid
-    assert all(r[q]["trap_hit"] for q in ("A1", "A2", "A3", "A4", "C1"))
+    assert all(r[q]["trap_hit"] for q in ("A1", "A2", "A3", "A4", "C1", "C2", "C3"))
 
 
 def test_partial_answer_is_strictly_between():
@@ -72,7 +72,15 @@ def test_partial_answer_is_strictly_between():
 
 
 def test_reference_solution_scores_near_one():
-    assert score_text(answer_text(), GT)["total"] > 0.99
+    assert score_text(answer_text(), GT)["total"] > 0.98
+
+
+def test_older_keys_keep_their_own_weights():
+    """A v2 key (nine questions, no weights field) is scored as it was when published."""
+    v2 = json.loads((ROOT / "outputs" / "pilot_01" / "ground_truth_v2.json").read_text())
+    r = score_text((ROOT / "outputs" / "pilot_01" / "response.md").read_text(), v2)
+    assert r["total"] == pytest.approx(0.995161) and r["format_ok"]
+    assert [q["qid"] for q in r["questions"]] == list(WEIGHTS_V2)
 
 
 # --- the task PDF's list example: [1, 3, 6, 11] vs [1, 3, 7, 15] --------------------

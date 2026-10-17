@@ -22,6 +22,7 @@ ANSWER_KEYS = {
     "B3": "B3_regime_change",
     "C1": "C1_best_supplier",
     "C2": "C2_optimal_humidity_pct",
+    "C3": "C3_rate_with_regular_cleaning",
 }
 B1_CANDIDATES = {"mold_temp", "humidity_pct", "cycle_time_s", "machine_age_years", "ambient_temp_c", "operator_id", "shift"}
 
@@ -104,6 +105,7 @@ _VALIDATORS = {
     "B3": _regime,
     "C1": _text,
     "C2": _number,
+    "C3": _number,
 }
 
 

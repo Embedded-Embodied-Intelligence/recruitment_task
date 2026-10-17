@@ -7,7 +7,7 @@ Principle: **difficulty must come from the data, not from an ambiguous prompt.**
 | Part | Purpose |
 |---|---|
 | Role + goal | Business framing: what drives the defect rate, what to change |
-| Data | Two files, the join key, the time span, the target definition |
+| Data | Three files, the join key, the time span, the target definition, when cleanings happen |
 | How to work | Execute Python (task requirement), inspect before analysing, check quality |
 | Questions A / B / C | Map 1:1 onto the three EDA steps of the task definition |
 | Answer format | Short justification, then exactly one JSON object with fixed keys and types |
@@ -21,12 +21,20 @@ The prompt is identical for every dataset variant, so ablations change only the 
 | A1 | a batch is identified by `batch_id`; count *unique* batches | that rows are repeated |
 | A2 | "missing **or not a valid measurement**" | that `-1` is a sentinel |
 | A3 | exact formula: total defective / total produced over unique batches | not to average batch rates |
-| A4 | unit (°C) and "valid readings" | L3 logs in °F, `0` = sensor failure |
+| A4 | unit (°C), "**actual** temperature", "valid readings" | L3 logs in °F, `0` = sensor failure, L1 sensor reads 8 °C high from its replacement (clue: maintenance log) |
 | B1 | closed candidate list; operational definition of *direct effect* | U-shape (r ≈ 0), confounding by line and mold temperature, variance misspecification |
 | B2 | "determined by the outcome"; excludes `defective_units` | which columns are post-QC |
 | B3 | "persistent, abrupt", "not explained by process variables", first production date | seasonal drift vs real level shift; which line |
-| C1 | "held equal": line, shift and process conditions | Simpson's paradox; dirty join key |
-| C2 | "within the observed range", "all other conditions equal" | need for a non-linear term |
+| C1 | a plant-wide switch to one supplier, everything else as it was | Simpson's paradox; dirty join key; with T11 the answer needs a prediction, not a coefficient |
+| C2 | Alpha batches only, "within the observed range", "all other conditions equal" | need for a non-linear term; Alpha's curve differs from the pooled one (clue: `pre_dried`) |
+| C3 | the counterfactual schedule (extra cleaning after 14 days), rate as in A3 | build days since cleaning per line from another file (backward as-of join); separate the cleaning effect from season and the L2 regime |
+
+## v3 wording (after pilot 01)
+
+- **"actual" in A4.** A miscalibrated reading is not invalid, it is wrong by a known amount. "Actual" makes the correction part of the question without naming the sensor. Without it, a model could defend reporting the logged values.
+- **"From next quarter the plant will use only Alpha resin" in C2.** A business reason to ask about one supplier. It does not say the curve differs by supplier; the model has to check that.
+- **"Molds are supposed to be cleaned at least every 14 days" in C3.** States the plan, not the gaps. The model has to find in the log that the plan was missed in summer.
+- **"Cleanings are done before the first shift" in the data section.** Without it, "days since the last cleaning" for a batch produced on a cleaning day would be ambiguous (0 or the previous interval), and the C3 answer would depend on a guess.
 
 ## Deliberate wording choices
 

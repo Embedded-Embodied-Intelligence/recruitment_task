@@ -2,7 +2,7 @@
 
 > **Contains the answer key. Never shown to the model under test.** The model only receives `task/prompt.md` and the files in `data/`.
 
-Status: Stage 1 design, validated with a throwaway prototype (see "Feasibility check"). Parameters may be tuned in Stage 6 (difficulty calibration).
+Status: dataset **v3**. The Stage 1 design (T1-T10) was validated with a throwaway prototype (see "Feasibility check"). After pilot 01 showed that a model with code execution avoids all ten (section 7c), v3 adds three traps that break answers to questions that do not name them (T11-T13).
 
 ## 1. Scenario
 
@@ -24,7 +24,7 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 | `supplier_code` | str | Resin supplier, join key to `suppliers.csv`, with **inconsistent case and whitespace** |
 | `machine_age_years` | float | Age of the press |
 | `ambient_temp_c` | float | Hall temperature, seasonal |
-| `mold_temp` | float | Mold temperature. **Line L3 logs in °F**, others in °C. `0` = sensor failure |
+| `mold_temp` | float | Mold temperature. **Line L3 logs in °F**, others in °C. `0` = sensor failure. **L1 reads 8 °C high from 2025-04-14** |
 | `humidity_pct` | float | Hall humidity. Missing as empty **or `-1` sentinel** |
 | `cycle_time_s` | float | Injection cycle time |
 | `units_produced` | int | Batch size |
@@ -32,7 +32,9 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 | `qc_inspection_min` | float | Time QC spent on the batch (**leakage**) |
 | `rework_cost_eur` | float | Cost of reworking defective parts (**leakage**) |
 
-`data/suppliers.csv` (3 rows): `supplier_code`, `supplier_name` (Alpha, Beta, Gamma), `resin_grade`, `country`.
+`data/suppliers.csv` (3 rows): `supplier_code`, `supplier_name` (Alpha, Beta, Gamma), `resin_grade`, `country`, `pre_dried` (Alpha: `no`, the **clue for T11**).
+
+`data/maintenance.csv` (~76 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) and one `calibration_check` on L1 (2025-09-22) whose note says the sensor reads 8.0 °C high (the **clue for T12**).
 
 ## 3. Data generating process (DGP)
 
@@ -45,10 +47,11 @@ logit(p_i) = -3.6
            + b_line[line_i]                    L1 0.0 | L2 0.1 | L3 0.2 | L4 0.9
            + b_supplier[supplier_i]            Alpha 0.0 | Beta -0.25 | Gamma -0.10
            + 0.03   * (mold_temp_c_i - 210)    hotter mold -> more defects
-           + 0.0012 * (humidity_pct_i - 36.62)^2  U-shape, optimum at 36.62 %
+           + 0.0012 * (humidity_pct_i - h*_s)^2  U-shape, h* = 30.0 for Alpha (not pre-dried), 42.92 for Beta and Gamma
            - 0.04   * (cycle_time_s_i - 30)    rushed cycles -> more defects
            + 0.15   * [shift_i = Night]
            + 0.60   * [line_i = L2 and date_i >= 2025-06-16]   mold wear on L2
+           + 0.02   * days_since_cleaning_i    dirty molds; cleaned before the first shift
            + u_i,   u_i ~ N(0, 0.25)           batch-level overdispersion
 ```
 
@@ -57,7 +60,9 @@ Covariates:
 - `supplier`: allocation depends on line. **Beta goes ~75 % to L4** (the oldest, worst line), and only 10-15 % to L1-L3.
 - `machine_age_years`: ~16 y on L4, ~5 y elsewhere. **No direct effect.**
 - `ambient_temp_c`: seasonal sine. It drives the mold controller (`mold_temp_c = 210 + 0.8·(ambient - 21) + noise`) but has **no direct effect**.
-- `humidity_pct = 12 + 64 · Beta(1.5, 3)`: right-skewed (mostly dry hall). The optimum 36.62 is placed where cov(h, (h - h*)²) = 0, so Pearson r ≈ 0, yet it is neither the midpoint of the range (≈ 42) nor the mean (≈ 33).
+- `humidity_pct = 12 + 64 · Beta(1.5, 3)`: right-skewed (mostly dry hall). 36.62 is the point where cov(h, (h - h*)²) = 0. The supplier optima (30.0 and 42.92) average to 36.62 when weighted by the suppliers' shares (Alpha 48.75 %), so the pooled U-shape still has Pearson r ≈ 0. Alpha's optimum is neither the midpoint of the range (≈ 42), the mean (≈ 33) nor the pooled optimum (≈ 36.8).
+- `days_since_cleaning`: from `maintenance.csv`. Cleanings come every 10-16 days, but every 26-35 days when the previous cleaning falls in July or August (holidays). Long gaps coincide with the hot season.
+- Sensor drift: the published L1 `mold_temp` from 2025-04-14 on is the true value + 8.0 °C. The DGP uses the true value.
 - `operator_id`: tied to a line, **no direct effect**.
 - `units_produced`: smaller batches on L4 (lognormal around 250 vs 600), so pooled and mean-of-rates differ.
 - Leakage: `rework_cost_eur ≈ 4.2 · defective_units · noise`, `qc_inspection_min ≈ 20 + 0.08 · defective_units + noise`. Both are **computed after QC from the outcome**.
@@ -76,8 +81,11 @@ Covariates:
 | T8 | Leakage | `rework_cost_eur`, `qc_inspection_min` | reported as top predictors | B2 |
 | T9 | Simpson's paradox | Beta worst overall, best within every line | wrong supplier recommended | C1 |
 | T10 | Regime change | L2 defect level jumps on 2025-06-16 | missed, averaged away | B3 |
+| T11 | Interaction (v3) | humidity optimum 30 % for Alpha, 42.9 % for Beta and Gamma; clue `pre_dried` | one humidity curve for all suppliers (optimum ≈ 36.8) | C2, C1 |
+| T12 | Silent sensor drift (v3) | L1 `mold_temp` +8 °C from 2025-04-14, plausible values; clue in the maintenance log | readings taken at face value | A4 |
+| T13 | Hidden driver in another file (v3) | defects rise 0.02 logit per day since cleaning; long gaps in July-August | log ignored: summer heat looks like the cause, cleaning effect overstated | B1, C3 |
 
-Every trap is detectable by a careful analyst with pandas, and each one maps to at least one scored question.
+Every trap is detectable by a careful analyst with pandas, and each one maps to at least one scored question. Since v3 a trap may also break an answer to a question that does not name it (A4 never mentions sensors, B1 never mentions maintenance). Each such trap has a clue in the published files.
 
 ## 5. Questions, answer key, metrics
 
@@ -87,17 +95,20 @@ The model returns one JSON object. The metric for each question matches the type
 
 | ID | EDA step | Question (short form) | Answer type | Ground truth source | Metric | Weight |
 |---|---|---|---|---|---|---|
-| A1 | Describe | Number of unique batches | int | generator (pre-duplication count) | zero-point linear, d = #duplicates | 0.075 |
-| A2 | Describe | Number of batches with missing humidity (any encoding) | int | generator | zero-point linear, d = #sentinels | 0.075 |
-| A3 | Describe | Overall defect rate = all defective / all produced, after de-duplication | float | generator | zero-point linear, d = \|mean-of-rates - pooled\| | 0.075 |
-| A4 | Describe | Median mold temperature in °C over valid readings | float | generator | zero-point linear, d = \|naive median - true\| | 0.075 |
-| B1 | Salient | Which of {mold temp, humidity, cycle time, machine age, ambient temp, operator, shift} have a **direct** effect on defect rate | set | DGP: {mold_temp, humidity_pct, cycle_time_s, shift} | F1 | 0.15 |
-| B2 | Salient | Which columns must not be used as predictors because they are determined by the outcome | set | DGP: {rework_cost_eur, qc_inspection_min} | F1 | 0.125 |
-| B3 | Salient | Date from which one line's defect level shifted persistently, and which line | date + line | DGP: L2, 2025-06-16 | line exact (gate) × `max(0, 1 - |Δdays| / 30)` | 0.125 |
-| C1 | Interpret | Supplier with the lowest defect rate after accounting for line, shift and process parameters | category | DGP: Beta | exact | 0.15 |
-| C2 | Interpret | Humidity level (%) at which the expected defect rate is lowest | float | DGP: 36.62 | zero-point linear, d = \|range midpoint - truth\| (5.58) | 0.15 |
+| A1 | Describe | Number of unique batches | int | generator (pre-duplication count) | zero-point linear, d = #duplicates | 0.07 |
+| A2 | Describe | Number of batches with missing humidity (any encoding) | int | generator | zero-point linear, d = #sentinels | 0.07 |
+| A3 | Describe | Overall defect rate = all defective / all produced, after de-duplication | float | generator | zero-point linear, d = \|mean-of-rates - pooled\| | 0.07 |
+| A4 | Describe | Median **actual** mold temperature in °C over valid readings | float | generator (°F converted, zeros dropped, L1 drift removed) | zero-point linear, d = \|median without the drift fix - true\| (1.0) | 0.07 |
+| B1 | Salient | Which of {mold temp, humidity, cycle time, machine age, ambient temp, operator, shift} have a **direct** effect on defect rate | set | DGP: {mold_temp, humidity_pct, cycle_time_s, shift} | F1 | 0.14 |
+| B2 | Salient | Which columns must not be used as predictors because they are determined by the outcome | set | DGP: {rework_cost_eur, qc_inspection_min} | F1 | 0.10 |
+| B3 | Salient | Date from which one line's defect level shifted persistently, and which line | date + line | DGP: L2, 2025-06-16 | line exact (gate) × `max(0, 1 - |Δdays| / 30)` | 0.10 |
+| C1 | Interpret | Supplier that would give the lowest overall defect rate if it delivered all the resin, everything else unchanged | category | DGP counterfactual: Beta | exact | 0.12 |
+| C2 | Interpret | Humidity (%) at which the expected defect rate of **Alpha** batches is lowest | float | DGP: 30.0 | zero-point linear, d = \|pooled-curve optimum - truth\| (6.76) | 0.13 |
+| C3 | Interpret | Expected overall rate if every mold had also been cleaned whenever 14 days had passed since its last cleaning | float | DGP counterfactual: 0.056071 (A3 = 0.059775) | zero-point linear, d = \|rate outside July-August - truth\| (0.0023) | 0.13 |
 
-Section weights: Describe 0.30, Salient 0.40, Interpret 0.30. A missing or unparseable field scores 0 for that question only.
+Section weights: Describe 0.28, Salient 0.34, Interpret 0.38. A missing or unparseable field scores 0 for that question only. For numeric questions with several wrong approaches, the zero point is the **best** wrong answer: in A4, a model that fixes the units but not the drift scores 0.
+
+C1 changed in v3. With T11 the supplier ranking at fixed conditions depends on humidity (in a very humid hall Gamma beats Beta), so "held equal" would have two right answers. The plant-wide switch is a counterfactual with one answer, and it is the decision management actually faces. C1 and C3 truths are computed from the DGP itself: every batch keeps its own conditions and random effect, and only the supplier or the time since cleaning changes.
 
 ## 6. Feasibility check (prototype, seed 42, clean data before trap injection)
 
@@ -135,9 +146,17 @@ Pilot 00 (Sonnet 5.5 in an incognito chat, where code execution is unavailable) 
 
 The no-code run is kept as a **control condition** (`outputs/pilot_00_no_code_exec/`). It measures how much of the score can be reached by eyeballing, which a good EDA benchmark should keep low.
 
+## 7c. Calibration after pilot 01 (code execution, v2)
+
+Pilot 01 (Sonnet 5.5 with code execution) scored **0.995**, the same as the reference solution. It found every T1-T10 trap, and even avoided the variance-misspecification trap by testing operators nested within lines. Diagnosis: each of the ten traps is an item on a standard EDA checklist, and each question points at where to look. v3 therefore follows a new rule: **a trap breaks the answer to a question that does not name it, but always leaves a clue in the published files**. T11-T13 implement it. In a 10-seed prototype, each new trap's naive answer scored 0, the old traps kept working (Simpson reversal on 10/10 seeds, pooled humidity r ≈ 0), and the expert method recovered every truth.
+
+Reference findings for v3 (`tests/test_reference.py`, 10 seeds; 20 in an offline check): the interaction model recovers Alpha's optimum within 1 point, the plant-wide switch always picks Beta, the C3 estimate stays within 0.2 of the zero-point scale, and the driver set stays exact. Without `days_since_cleaning`, ambient temperature turns significant (p < 0.05 on 18 of 20 seeds, p = 8e-5 on seed 42), which is the B1 effect of T13.
+
 ## 8. Ablation semantics
 
 Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). All random draws happen whatever the switches are ("common random numbers"), so a variant differs from the full task only in the switched-off trap.
+
+v3 fixed a flaw in this claim. Defect counts used to come from `rng.binomial`, which consumes a varying number of random numbers depending on p, so every trap that changed p (for example regime change) also reshuffled the later draws: which readings go missing, which rows are duplicated. Defects now come from the inverse CDF of one uniform per batch, and `test_ablation_keeps_common_random_numbers` checks every switch. The new v3 draws (cleaning schedule, batch ids) come from child generators.
 
 | Trap off | Effect on data | Effect on answer key |
 |---|---|---|
@@ -151,6 +170,9 @@ Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). A
 | leakage | leakage columns not published | B2 truth = empty set |
 | simpson_paradox | supplier allocation independent of line | C1 naive = truth |
 | regime_change | no level shift | B3 truth = null |
+| interaction | one humidity optimum (36.62) for every supplier | C2 truth = 36.62, C2 naive ≈ truth |
+| sensor_drift | L1 sensor accurate; the calibration note says so | A4 naive = raw median (as in v2) |
+| hidden_driver | cleanings have no effect (the log is still published) | C3 truth = A3 |
 
 ## 9. Contamination protection
 

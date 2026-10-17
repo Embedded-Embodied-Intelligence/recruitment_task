@@ -8,7 +8,7 @@ python -m edabench.scorer <response file> --truth eval/ground_truth.json
 
 ## 1. Overall score
 
-The answer has nine fields, one per question. Each question *q* gets a score *s_q* ∈ [0, 1] from a metric matched to its answer type. The total is a weighted mean:
+The answer has ten fields, one per question (dataset v3). Each question *q* gets a score *s_q* ∈ [0, 1] from a metric matched to its answer type. The total is a weighted mean:
 
 ```
 score = Σ_q  w_q · s_q          Σ_q w_q = 1
@@ -16,11 +16,13 @@ score = Σ_q  w_q · s_q          Σ_q w_q = 1
 
 | Section (EDA step) | Questions | Weight |
 |---|---|---|
-| Describe the data | A1, A2, A3, A4 | 0.075 each, 0.30 total |
-| Identify salient features | B1 0.15, B2 0.125, B3 0.125 | 0.40 |
-| Interpret salient features | C1, C2 | 0.15 each, 0.30 total |
+| Describe the data | A1, A2, A3, A4 | 0.07 each, 0.28 total |
+| Identify salient features | B1 0.14, B2 0.10, B3 0.10 | 0.34 |
+| Interpret salient features | C1 0.12, C2 0.13, C3 0.13 | 0.38 |
 
-The weights put more value on **finding and interpreting** effects (70 %) than on describing the data (30 %). Describing is a prerequisite: each A-question is cheap on its own, but the cleaning it requires feeds every later answer. The report also gives each section's score separately.
+The weights put more value on **finding and interpreting** effects (72 %) than on describing the data (28 %). Describing is a prerequisite: each A-question is cheap on its own, but the cleaning it requires feeds every later answer. Interpretation weighs most because it answers management's question ("what should we change?"). The report also gives each section's score separately.
+
+The weights are stored in the answer key (`weights`), so each dataset version is scored with the weights it was published with. A v1 or v2 key has no `weights` field and is scored with the nine-question weights of that time (A 0.075 each, B1 0.15, B2 and B3 0.125, C1 and C2 0.15).
 
 **Failure isolation.** A missing or malformed field scores 0 for its own question only (`format_ok` is then `false`). A reply with no JSON answer at all scores 0.
 
@@ -44,15 +46,16 @@ If the elements are row indices, row 7 is *not* "almost" row 6: it is a differen
 s = max(0, 1 - |a - t| / scale)
 ```
 
-A fixed relative tolerance would not work here. In A1 the trap (not removing duplicates) gives 3,060 instead of 3,000, a 2 % error. A 10 % tolerance would award 0.8 to a model that fell for the trap. So **the zero point is set at the naive trap answer**: `scale = |naive - t|`, as computed by the generator from the same data. Falling for the trap scores 0, a small numerical deviation earns almost full credit, and the score drops linearly in between. A floor keeps the scale positive when a trap is switched off (ablation variants).
+A fixed relative tolerance would not work here. In A1 the trap (not removing duplicates) gives 3,060 instead of 3,000, a 2 % error. A 10 % tolerance would award 0.8 to a model that fell for the trap. So **the zero point is set at the naive trap answer**: `scale = |naive - t|`, as computed by the generator from the same data. Falling for the trap scores 0, a small numerical deviation earns almost full credit, and the score drops linearly in between. When several wrong approaches exist, the zero point is the **best** of them (A4: units fixed, drift not fixed), so every worse approach scores 0 too. A floor keeps the scale positive when a trap is switched off (ablation variants).
 
 | Q | Truth | Naive trap answer | Scale | Trap |
 |---|---|---|---|---|
 | A1 | 3000 | 3060 | 60 | duplicates kept |
-| A2 | 200 | 43 | 157 | `-1` sentinel not treated as missing |
-| A3 | 0.047621 | 0.050288 | 0.002667 | mean of batch rates instead of the pooled rate |
-| A4 | 211.0 | 213.7 | 2.7 | °F readings on L3 and zeros kept |
-| C2 | 36.62 | 42.2 | 5.58 | midpoint of the observed humidity range (a guess without modelling) |
+| A2 | 226 | 55 | 171 | `-1` sentinel not treated as missing |
+| A3 | 0.059775 | 0.063876 | 0.004101 | mean of batch rates instead of the pooled rate |
+| A4 | 210.9 | 211.9 | 1.0 | L1 sensor drift not corrected (°F and zeros already fixed) |
+| C2 | 30.0 | 36.76 | 6.76 | one humidity curve for all suppliers |
+| C3 | 0.056071 | 0.053765 | 0.002306 | "summer as good as the rest of the year": the rate outside July-August |
 
 ### Sets (B1 drivers, B2 leakage): F1
 
@@ -65,6 +68,10 @@ F1 penalizes both a false driver (for example `machine_age_years`, the confounde
 ### Category (C1 supplier): exact match
 
 There are three suppliers, and the question has one correct answer. Partial credit for "second best" would reward the naive answer that Simpson's paradox produces.
+
+### Counterfactuals (C1, C3): truth from the DGP
+
+C1 and C3 ask what *would* have happened. The key computes this from the data generating process itself: every batch keeps its own conditions and its random batch effect, and only the supplier (C1) or the days since cleaning (C3) change. The answer is therefore exact, not an estimate by our own model. C3 is reported as a rate: the observed A3 rate times the ratio of expected defects with and without the extra cleanings. The reference solution estimates the same ratio from a fitted model and lands within 0.2 of the zero-point scale on every tested seed.
 
 ### Regime change (B3): gated date distance
 
@@ -81,7 +88,8 @@ The line is a gate: a correct date on the wrong line is a wrong finding. Within 
 | Correct answer → 1.0, empty or no answer → 0.0 | `test_correct_answer_scores_one`, `test_no_answer_scores_zero` |
 | Every trap answer scores 0 on its question | `test_trap_answers_score_zero_on_their_questions` |
 | A partial answer scores strictly between 0 and 1 | `test_partial_answer_is_strictly_between` |
-| Expert reference solution ≈ 1 (0.995) | `test_reference_solution_scores_near_one` |
+| Expert reference solution ≈ 1 (0.996) | `test_reference_solution_scores_near_one` |
+| Older keys keep their own weights (pilot 01 still scores 0.995 on v2) | `test_older_keys_keep_their_own_weights` |
 | Bounded, monotone in the error, symmetric | `test_number_score_bounded_monotone_symmetric` |
 | Avoiding one more trap never lowers the score | `test_more_traps_avoided_never_scores_lower` |
 | One malformed field costs exactly its weight | `test_one_bad_field_costs_one_question` |

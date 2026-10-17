@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from edabench.answer import ANSWER_KEYS, B1_CANDIDATES, extract_json, parse_answer
-from edabench.generate import CANARY, COLUMNS
+from edabench.generate import CANARY, COLUMNS, MAINTENANCE_COLUMNS, SUPPLIERS
 from edabench.prompt import PROMPT_PATH, render_prompt
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,13 +30,16 @@ def test_prompt_lists_every_answer_key_and_the_b1_candidates():
 
 def test_prompt_never_names_a_trap_answer():
     text = render_prompt().lower()
-    for leak in ("fahrenheit", "°f", "-1", "duplicate", "rework_cost", "qc_inspection", "beta", "l2", "simpson"):
+    for leak in (
+        "fahrenheit", "°f", "-1", "duplicate", "rework_cost", "qc_inspection", "beta", "l2", "simpson",
+        "sensor", "drift", "calibrat", "offset", "interaction", "pre_dried", "july", "august", "summer", "holiday",
+    ):
         assert leak not in text, leak
 
 
 def test_prompt_only_mentions_existing_columns():
     named = set(re.findall(r"`([a-z_]+)`", render_prompt())) - {"null"}
-    assert named <= set(COLUMNS) | {"supplier_name", "batches", "suppliers"}
+    assert named <= set(COLUMNS) | set(SUPPLIERS) | set(MAINTENANCE_COLUMNS) | {"batches", "suppliers", "maintenance"}
 
 
 def test_reference_answer_parses_cleanly():

@@ -19,6 +19,9 @@ traps:
   leakage: true              # T8
   simpson_paradox: true      # T9
   regime_change: true        # T10
+  interaction: true          # T11 (v3)
+  sensor_drift: true         # T12 (v3)
+  hidden_driver: true        # T13 (v3)
 
 models:
   - name: claude-sonnet

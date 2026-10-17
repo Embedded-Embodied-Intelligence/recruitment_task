@@ -7,8 +7,9 @@ Each question uses a metric matched to the *type* of its answer (docs/measure.md
     category  exact match, case-insensitive
     regime    line must match (gate) x max(0, 1 - |days off| / scale_days); null vs null -> 1
 
-The total is the weighted mean over the nine questions, always in [0, 1]. A missing or
-malformed field scores 0 for its question only.
+The total is the weighted mean over the questions, always in [0, 1]. A missing or
+malformed field scores 0 for its question only. The weights come from the answer key, so
+a key from an older dataset version is scored with the weights it was published with.
 
 Usage:
     python -m edabench.scorer outputs/<run>/response.md --truth eval/ground_truth.json
@@ -25,12 +26,19 @@ from pathlib import Path
 from edabench.answer import ParsedAnswer, parse_answer
 
 WEIGHTS = {
-    "A1": 0.075, "A2": 0.075, "A3": 0.075, "A4": 0.075,  # Describe   0.30
-    "B1": 0.150, "B2": 0.125, "B3": 0.125,               # Salient    0.40
-    "C1": 0.150, "C2": 0.150,                            # Interpret  0.30
+    "A1": 0.07, "A2": 0.07, "A3": 0.07, "A4": 0.07,  # Describe   0.28
+    "B1": 0.14, "B2": 0.10, "B3": 0.10,              # Salient    0.34
+    "C1": 0.12, "C2": 0.13, "C3": 0.13,              # Interpret  0.38
+}
+# Dataset v1/v2 keys (nine questions) carry no weights of their own.
+WEIGHTS_V2 = {
+    "A1": 0.075, "A2": 0.075, "A3": 0.075, "A4": 0.075,
+    "B1": 0.150, "B2": 0.125, "B3": 0.125,
+    "C1": 0.150, "C2": 0.150,
 }
 SECTIONS = {"A": "describe", "B": "salient_features", "C": "interpret"}
-assert abs(sum(WEIGHTS.values()) - 1) < 1e-12
+for _w in (WEIGHTS, WEIGHTS_V2):
+    assert abs(sum(_w.values()) - 1) < 1e-12
 
 
 # --- metrics ----------------------------------------------------------------------
@@ -109,8 +117,9 @@ def _trap_hit(spec: dict, answer) -> bool | None:
 
 def score_parsed(parsed: ParsedAnswer, ground_truth: dict) -> dict:
     questions = ground_truth["questions"]
+    weights = ground_truth.get("weights", WEIGHTS_V2)
     rows = []
-    for qid, weight in WEIGHTS.items():
+    for qid, weight in weights.items():
         spec = questions[qid]
         if qid not in parsed.values:
             note = parsed.errors.get(qid) or parsed.errors.get("_", "missing")
@@ -139,7 +148,7 @@ def score_parsed(parsed: ParsedAnswer, ground_truth: dict) -> dict:
     return {
         "total": round(total, 6),
         "sections": sections,
-        "format_ok": parsed.ok,
+        "format_ok": not ({"_", *weights} & set(parsed.errors)),
         "questions": [asdict(r) for r in rows],
     }
 
