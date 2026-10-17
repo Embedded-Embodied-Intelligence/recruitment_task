@@ -151,7 +151,12 @@ def test_claude_command_isolates_the_run():
     assert settings["sandbox"]["enabled"] and settings["sandbox"]["network"]["allowedDomains"] == []
     hidden = settings["sandbox"]["filesystem"]["denyRead"]
     assert str(ROOT / "eval") in hidden and str(ROOT / "edabench") in hidden
-    assert f"Read(//{ROOT.as_posix().lstrip('/')}/**)" in settings["permissions"]["deny"]
+    deny = settings["permissions"]["deny"]
+    assert f"Read(//{(ROOT / 'eval').as_posix().lstrip('/')}/**)" in deny
+    assert f"Edit(//{ROOT.as_posix().lstrip('/')}/**)" in deny
+    # Read rules also bind the sandbox, so they must spare the interpreter's venv (macOS).
+    assert not any(r.startswith("Read(") and Path(sys.executable).absolute().as_posix().startswith(
+        "/" + r[len("Read(//"):].removesuffix(")").removesuffix("/**")) for r in deny)
     extra = claude_command(cli_spec(), "P", hidden=(Path("/tmp/key"),))
     extra_settings = json.loads(extra[extra.index("--settings") + 1])
     assert "/tmp/key" in extra_settings["sandbox"]["filesystem"]["denyRead"]

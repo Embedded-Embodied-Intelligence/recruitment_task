@@ -186,11 +186,19 @@ def claude_command(spec: ModelSpec, prompt: str, claude_bin: str = "claude",
                    hidden: tuple[Path, ...] = ()) -> list[str]:
     """`hidden`: more directories to keep out of reach, e.g. the answer key of the run."""
     # The sandbox's denyRead binds shell commands only; the Read tool needs deny rules.
-    rules = ["//" + Path(d).absolute().as_posix().lstrip("/") + "/**" for d in (REPO_ROOT, *hidden)]
+    # Read rules also feed the sandbox (on macOS they block running a file), so they cover
+    # the same entries as denyRead and spare the venv; writes are denied for the whole repo.
+    def rule(path: str | Path) -> str:
+        path = Path(path).absolute()
+        return "//" + path.as_posix().lstrip("/") + ("" if path.is_file() else "/**")
+
+    hidden_paths = _repo_paths_to_hide() + [str(Path(d).absolute()) for d in hidden]
+    deny = [f"Read({rule(d)})" for d in hidden_paths]
+    deny += [f"Edit({rule(d)})" for d in (REPO_ROOT, *hidden)]
     settings = {
         "autoMemoryEnabled": False,
         "disableAllHooks": True,
-        "permissions": {"deny": [f"{tool}({r})" for r in rules for tool in ("Read", "Edit")]},
+        "permissions": {"deny": deny},
     }
     if spec.cli_sandbox:
         settings["sandbox"] = {
@@ -198,7 +206,7 @@ def claude_command(spec: ModelSpec, prompt: str, claude_bin: str = "claude",
             "failIfUnavailable": True,
             "allowUnsandboxedCommands": False,
             "network": {"allowedDomains": []},
-            "filesystem": {"denyRead": _repo_paths_to_hide() + [str(Path(d).absolute()) for d in hidden]},
+            "filesystem": {"denyRead": hidden_paths},
         }
     cmd = [
         claude_bin, "-p", prompt,
