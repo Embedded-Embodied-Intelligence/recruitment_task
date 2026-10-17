@@ -1,0 +1,10 @@
+batches_unique = batches.drop_duplicates(subset=['batch_id']).copy()
+print("Missing values in humidity_pct:", batches_unique['humidity_pct'].isna().sum())
+print("Summary stats of humidity_pct:")
+print(batches_unique['humidity_pct'].describe())
+print("Values <= 0 or > 100:", (batches_unique['humidity_pct'] <= 0).sum(), (batches_unique['humidity_pct'] > 100).sum())
+print("Smallest values:")
+print(batches_unique['humidity_pct'].sort_values().head(20))
+print("Largest values:")
+print(batches_unique['humidity_pct'].sort_values(ascending=False).head(20))
+
