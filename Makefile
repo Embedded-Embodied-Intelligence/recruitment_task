@@ -1,4 +1,4 @@
-.PHONY: install test data data-notraps reference check-claude bench report
+.PHONY: install test data data-notraps reference check-claude bench report explorer
 
 install:
 	python3 -m pip install -e ".[dev,notebook,harness]"
@@ -29,4 +29,7 @@ bench:
 	python3 -m edabench.runner --model $(MODELS) --variant $(VARIANTS) --runs $(RUNS)
 
 report:
-	python3 -m edabench.report outputs/runs/v3_seed42
+	python3 -m edabench.report outputs/runs/v4_seed42
+
+explorer:
+	python3 -m edabench.explorer outputs/runs/v4_seed42 --out docs/explorer.html

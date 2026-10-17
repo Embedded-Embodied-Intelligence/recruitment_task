@@ -1,0 +1,38 @@
+{
+  "title": "EDA-Bench v4",
+  "headline": "On the v4 dataset, Claude models with code execution solve the task only partly: no run scores 1. They find almost every planted trap and lose points where a detected problem must also be estimated correctly.",
+  "history": [
+    {"stage": "Pilot 00", "setting": "Sonnet 5.5, app, no code, v1", "score": 0.652},
+    {"stage": "Pilot 01", "setting": "Sonnet 5.5, app with code, v2", "score": 0.995},
+    {"stage": "Pilot 02", "setting": "Sonnet 5.5, app with code, v3", "score": 0.872},
+    {"stage": "v3 harness", "setting": "Haiku 5.5, 5 runs", "score": 0.955},
+    {"stage": "v3 harness", "setting": "Sonnet 5.5, 5 runs", "score": 0.982},
+    {"stage": "v3 harness", "setting": "Opus 5.5, 3 runs", "score": 0.994},
+    {"stage": "v4 harness", "setting": "Haiku 5.5, 5 runs", "score": 0.879},
+    {"stage": "v4 harness", "setting": "Sonnet 5.5, 5 runs", "score": 0.960},
+    {"stage": "v4 harness", "setting": "Opus 5.5, 3 runs", "score": 0.969}
+  ],
+  "findings": [
+    {"kind": "estimation", "question": "A4", "title": "Wrong control group for the sensor offset",
+     "text": "Opus estimated the L1 sensor offset at 6.2 °C instead of 8.0 in all 3 runs. Its regression used every other line as the control, including L3, which really runs 6 °C hotter from May. The real change on L3 shrinks the estimated step on L1.",
+     "runs": ["claude-opus/full/run_01", "claude-opus/full/run_02", "claude-opus/full/run_03"]},
+    {"kind": "reasoning", "question": "A4", "title": "Correction in the wrong direction",
+     "text": "Sonnet decided twice that the old sensor read too low and added the offset to the readings before the replacement, giving 213.6 °C (truth 211.5).",
+     "runs": ["claude-sonnet/full/run_01", "claude-sonnet/no_quality_hint/run_05"]},
+    {"kind": "missed", "question": "A4", "title": "Sensor step left uncorrected",
+     "text": "Haiku noticed the step at the replacement date but reported the raw median (212.8 °C) in 2 of 5 runs on the full prompt.",
+     "runs": ["claude-haiku/full/run_02", "claude-haiku/full/run_05"]},
+    {"kind": "ambiguity", "question": "C3", "title": "True rate instead of recorded rate",
+     "text": "Two runs answered C3 with the defect rate corrected for the weaker L3 inspection rather than the recorded rate that A3 defines. One of them also gave the recorded value, which would have scored 0.97. The question needs clearer wording in the next version.",
+     "runs": ["claude-haiku/full/run_01", "claude-sonnet/no_quality_hint/run_03"]},
+    {"kind": "decoy", "question": "B3", "title": "QC change reported as the regime change",
+     "text": "One Haiku run reported the fall in recorded L3 defects from 2025-07-21 as the regime change. Rework per recorded defect doubles on that date, so the parts are as bad as before and only fewer of them are counted.",
+     "runs": ["claude-haiku/full/run_02"]},
+    {"kind": "format", "question": "all", "title": "No final answer",
+     "text": "Two Haiku runs without the quality hint scored 0: one hit the 60-turn limit, the other left its JSON in an earlier message. They measure format, not analysis, and explain the apparent +0.32 effect of the hint on Haiku.",
+     "runs": ["claude-haiku/no_quality_hint/run_02", "claude-haiku/no_quality_hint/run_04"]},
+    {"kind": "found", "question": "C1 · dates · QC", "title": "Traps every model found",
+     "text": "C1 was right in 23 of 23 runs: the models moved the cycle time with each grade's recipe. Nearly every run parsed dates per line and flagged the L3 inspection change. Each clue was loud: a parser error, a phrase in the prompt, and a step of several standard deviations.",
+     "runs": []}
+  ]
+}
