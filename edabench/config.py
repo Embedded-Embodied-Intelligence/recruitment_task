@@ -13,6 +13,14 @@ class ModelSpec:
     model_id: str    # exact model id sent to the provider (pinned, never "auto")
     base_url: str | None = None
     api_key_env: str | None = None  # env var holding the key; keys never live in the config
+    effort: str | None = None       # claude_cli only: effort level passed to Claude Code
+    max_turns: int = 40             # model calls per run, tool calls included
+    # Free tiers limit tokens per minute, so a backend may need a smaller context:
+    max_output_chars: int = 4000    # tool output shown to the model per call
+    keep_tool_outputs: int | None = None  # older tool outputs are elided beyond this many
+    min_interval_s: float = 0.0     # pause between requests (requests-per-minute limits)
+    timeout_s: int = 3600           # wall-clock limit for one run
+    cli_sandbox: bool = True        # claude_cli only: OS sandbox without network (not on native Windows)
 
 
 @dataclass(frozen=True)

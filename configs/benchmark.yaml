@@ -23,17 +23,39 @@ traps:
   sensor_drift: true         # T12 (v3)
   hidden_driver: true        # T13 (v3)
 
+# Model ids are pinned (no aliases such as "sonnet"), so a rerun hits the same model.
+# claude_cli runs Claude Code in print mode on the operator's Pro login (edabench/backends.py);
+# openai_compatible runs our tool loop against a free API, key from the named env var.
 models:
+  - name: claude-haiku
+    backend: claude_cli
+    model_id: claude-haiku-5-5
+    effort: medium            # Claude Code's default for 5.5 models; thinking cannot be switched off
+    max_turns: 60             # agent turns; claude -p stops without an answer at the limit
   - name: claude-sonnet
     backend: claude_cli
-    model_id: sonnet
+    model_id: claude-sonnet-5-5
+    effort: medium            # the setting of pilots 01 and 02 in the Claude app
+    max_turns: 60
+  - name: claude-opus
+    backend: claude_cli
+    model_id: claude-opus-5-5
+    effort: medium
+    max_turns: 60
   - name: gemini-flash
     backend: openai_compatible
-    model_id: TBD          # pinned in Stage 6 after checking the free-tier roster
-    base_url: https://generativelanguage.googleapis.com/v1beta/openai/   # verify in Stage 6
+    model_id: gemini-3.8-flash
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
     api_key_env: GEMINI_API_KEY
+    min_interval_s: 7         # free tier ~10 requests per minute
   - name: gpt-oss-120b
     backend: openai_compatible
     model_id: openai/gpt-oss-120b
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
+    # Groq's free tier allows ~8k tokens per minute and ~200k per day, so the context is
+    # kept small: shorter tool outputs, only the last few kept, fewer turns.
+    max_turns: 25
+    max_output_chars: 1500
+    keep_tool_outputs: 3
+    min_interval_s: 20
