@@ -1,0 +1,30 @@
+# Experiment definition. API keys are read from the environment variables named here.
+seed: 42
+n_runs: 5
+temperature: 1.0   # provider default; we measure typical behaviour, not a cherry-picked greedy run
+
+# Each trap can be switched off for ablation runs (a no-trap variant should score ~1.0).
+# The final list is fixed in Stage 1 (task design).
+traps:
+  hidden_missing: true
+  mixed_units: true
+  inconsistent_labels: true
+  duplicates: true
+  nonlinear_effect: true
+  leakage_column: true
+  simpson_paradox: true
+
+models:
+  - name: claude-sonnet
+    backend: claude_cli
+    model_id: sonnet
+  - name: gemini-flash
+    backend: openai_compatible
+    model_id: TBD          # pinned in Stage 6 after checking the free-tier roster
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/   # verify in Stage 6
+    api_key_env: GEMINI_API_KEY
+  - name: gpt-oss-120b
+    backend: openai_compatible
+    model_id: openai/gpt-oss-120b
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY

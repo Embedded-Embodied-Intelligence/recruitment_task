@@ -1,0 +1,26 @@
+[project]
+name = "edabench"
+version = "0.1.0"
+description = "A hard EDA task for LLMs with a reproducible generation, execution and scoring pipeline"
+requires-python = ">=3.11"
+# Exact pins: a benchmark result is only reproducible with the same library versions.
+dependencies = [
+    "numpy==2.5.4",
+    "pandas==3.0.6",
+    "scipy==1.18.1",
+    "matplotlib==3.11.2",
+    "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["edabench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
