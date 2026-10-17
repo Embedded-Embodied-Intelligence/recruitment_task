@@ -1,0 +1,15 @@
+{
+  "run_id": "pilot_01",
+  "model": "Sonnet 5.5",
+  "effort": "Medium (Recommended/Default)",
+  "interface": "Claude Desktop, regular chat (memory and chat search off, profile instructions cleared)",
+  "code_execution": true,
+  "sandbox_notes": "statsmodels was not installable in the sandbox; the model wrote its own binomial IRLS GLM with numpy/scipy.",
+  "dataset_version": "v2 (random batch ids, skewed humidity), seed 42, batches.csv sha256 a8a21834e60332bf...",
+  "answer_key": "eval/ground_truth.json (v2)",
+  "prompt": "task/prompt.md at commit 843040c (unchanged since Stage 4)",
+  "response_capture": "final reply and tool-progress notes copied from the app by the operator; executed code not captured",
+  "n_runs": 1,
+  "date": "2026-10-17",
+  "operator": "KamPieDev"
+}
