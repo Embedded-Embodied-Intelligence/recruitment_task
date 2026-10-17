@@ -1,0 +1,123 @@
+{
+  "total": 0.932668,
+  "sections": {
+    "describe": 1.0,
+    "salient_features": 1.0,
+    "interpret": 0.82281
+  },
+  "format_ok": true,
+  "questions": [
+    {
+      "qid": "A1",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 3000,
+      "truth": 3000,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "A2",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 226,
+      "truth": 226,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "A3",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 0.059775,
+      "truth": 0.059775,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "A4",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 210.9,
+      "truth": 210.9,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "B1",
+      "score": 1.0,
+      "weight": 0.14,
+      "answer": [
+        "cycle_time_s",
+        "humidity_pct",
+        "mold_temp",
+        "shift"
+      ],
+      "truth": [
+        "cycle_time_s",
+        "humidity_pct",
+        "mold_temp",
+        "shift"
+      ],
+      "note": "",
+      "trap_hit": null
+    },
+    {
+      "qid": "B2",
+      "score": 1.0,
+      "weight": 0.1,
+      "answer": [
+        "qc_inspection_min",
+        "rework_cost_eur"
+      ],
+      "truth": [
+        "qc_inspection_min",
+        "rework_cost_eur"
+      ],
+      "note": "",
+      "trap_hit": null
+    },
+    {
+      "qid": "B3",
+      "score": 1.0,
+      "weight": 0.1,
+      "answer": {
+        "line": "L2",
+        "date": "2025-06-16"
+      },
+      "truth": {
+        "line": "L2",
+        "date": "2025-06-16"
+      },
+      "note": "",
+      "trap_hit": null
+    },
+    {
+      "qid": "C1",
+      "score": 1.0,
+      "weight": 0.12,
+      "answer": "Beta",
+      "truth": "Beta",
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "C2",
+      "score": 0.556213,
+      "weight": 0.13,
+      "answer": 27.0,
+      "truth": 30.0,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "C3",
+      "score": 0.925846,
+      "weight": 0.13,
+      "answer": 0.0559,
+      "truth": 0.056071,
+      "note": "",
+      "trap_hit": false
+    }
+  ]
+}
