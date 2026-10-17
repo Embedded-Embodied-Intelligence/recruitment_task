@@ -8,7 +8,7 @@ python -m edabench.scorer <response file> --truth eval/ground_truth.json
 
 ## 1. Overall score
 
-The answer has ten fields, one per question (dataset v3). Each question *q* gets a score *s_q* ∈ [0, 1] from a metric matched to its answer type. The total is a weighted mean:
+The answer has ten fields, one per question (datasets v3 and v4). Each question *q* gets a score *s_q* ∈ [0, 1] from a metric matched to its answer type. The total is a weighted mean:
 
 ```
 score = Σ_q  w_q · s_q          Σ_q w_q = 1
