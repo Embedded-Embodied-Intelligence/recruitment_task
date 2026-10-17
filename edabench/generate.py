@@ -244,19 +244,21 @@ def _corrupt(rng: np.random.Generator, true: pd.DataFrame, traps: dict[str, bool
 
 def _scale(naive: float, truth: float, floor: float) -> float:
     """Zero point of the linear score: the naive answer's distance, never below a floor."""
-    return float(max(abs(naive - truth), floor))
+    return round(float(max(abs(naive - truth), floor)), 9)
 
 
 def _ground_truth(unique_rows, published, masks, true, traps, seed) -> dict:
     """Answer key per question, computed from what is published (see module docstring)."""
+    # Values are rounded *before* the zero-point scale is derived, so the naive answer as
+    # stored in the key scores exactly 0.
     n_unique = len(unique_rows)
-    pooled = unique_rows["defective_units"].sum() / unique_rows["units_produced"].sum()
-    mean_of_rates = (unique_rows["defective_units"] / unique_rows["units_produced"]).mean()
+    pooled = round(float(unique_rows["defective_units"].sum() / unique_rows["units_produced"].sum()), 6)
+    mean_of_rates = round(float((unique_rows["defective_units"] / unique_rows["units_produced"]).mean()), 6)
 
     mold_c = np.where(masks["is_fahrenheit"], (unique_rows["mold_temp"] - 32) * 5 / 9, unique_rows["mold_temp"])
     mold_valid = mold_c[~masks["mold_failed"]]
-    median_true = float(np.median(mold_valid))
-    median_naive = float(unique_rows["mold_temp"].median())
+    median_true = round(float(np.median(mold_valid)), 3)
+    median_naive = round(float(unique_rows["mold_temp"].median()), 3)
 
     missing_true = int(masks["humidity_missing"].sum())
     missing_naive = int(unique_rows["humidity_pct"].isna().sum())
@@ -274,9 +276,9 @@ def _ground_truth(unique_rows, published, masks, true, traps, seed) -> dict:
                "scale": _scale(len(published), n_unique, 0.01 * n_unique)},
         "A2": {"type": "number", "truth": missing_true, "naive": missing_naive,
                "scale": _scale(missing_naive, missing_true, 0.1 * missing_true)},
-        "A3": {"type": "number", "truth": round(float(pooled), 6), "naive": round(float(mean_of_rates), 6),
+        "A3": {"type": "number", "truth": pooled, "naive": mean_of_rates,
                "scale": _scale(mean_of_rates, pooled, 0.002)},
-        "A4": {"type": "number", "truth": round(median_true, 3), "naive": round(median_naive, 3),
+        "A4": {"type": "number", "truth": median_true, "naive": median_naive,
                "scale": _scale(median_naive, median_true, 0.5)},
         "B1": {"type": "set", "truth": DIRECT_DRIVERS},
         "B2": {"type": "set", "truth": LEAKAGE_COLUMNS if traps["leakage"] else []},

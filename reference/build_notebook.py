@@ -254,33 +254,13 @@ print(f"humidity optimum: {h_star:.1f} %  (bootstrap 95% CI {lo:.1f}-{hi:.1f})")
 print(json.dumps(answers, indent=2))"""),
     ("md", """## 4. Check against the answer key
 
-*This section uses `eval/ground_truth.json`, which no model ever sees. The scoring here is a provisional transcription of the metrics in `docs/task_design.md` (section 5); Stage 5 replaces it with `edabench.scorer`.*"""),
-    ("code", """gt = json.loads(Path("../eval/ground_truth.json").read_text())["questions"]
-key = {"A1": "A1_unique_batches", "A2": "A2_missing_humidity_batches", "A3": "A3_overall_defect_rate",
-       "A4": "A4_median_mold_temp_c", "B1": "B1_direct_drivers", "B2": "B2_leakage_columns",
-       "B3": "B3_regime_change", "C1": "C1_best_supplier", "C2": "C2_optimal_humidity_pct"}
-weights = {"A1": .075, "A2": .075, "A3": .075, "A4": .075, "B1": .15, "B2": .125, "B3": .125, "C1": .15, "C2": .15}
+*This section uses `eval/ground_truth.json`, which no model ever sees, and the benchmark's own scorer (`edabench.scorer`, defined in `docs/measure.md`).*"""),
+    ("code", """from edabench.scorer import score_text
 
-def f1(a, t):
-    a, t = set(a), set(t)
-    if not a and not t: return 1.0
-    tp = len(a & t); return 2 * tp / (len(a) + len(t))
-
-rows = []
-for q, spec in gt.items():
-    a, t = answers[key[q]], spec["truth"]
-    if spec["type"] == "number":
-        s = max(0.0, 1 - abs(a - t) / spec["scale"])
-    elif spec["type"] == "set":
-        s = f1(a, t)
-    elif spec["type"] == "category":
-        s = float(a == t)
-    else:  # regime
-        s = float(a["line"] == t["line"]) * max(0.0, 1 - abs((pd.Timestamp(a["date"]) - pd.Timestamp(t["date"])).days) / spec["scale_days"])
-    rows.append((q, a, t, round(s, 3), weights[q]))
-check = pd.DataFrame(rows, columns=["question", "reference", "truth", "score", "weight"]).set_index("question")
-print("weighted total:", round((check["score"] * check["weight"]).sum(), 3))
-check"""),
+gt = json.loads(Path("../eval/ground_truth.json").read_text())
+result = score_text(json.dumps(answers), gt)
+print("total:", result["total"], "| sections:", result["sections"])
+pd.DataFrame(result["questions"]).set_index("qid")[["score", "weight", "answer", "truth"]]"""),
 ]
 
 

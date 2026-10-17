@@ -81,7 +81,7 @@ Every trap is detectable by a careful analyst with pandas, and each one maps to 
 
 ## 5. Questions, answer key, metrics
 
-The model returns one JSON object. The metric for each question matches the type of its answer (see `docs/measure.md`, Stage 5).
+The model returns one JSON object. The metric for each question matches the type of its answer (full definition: `docs/measure.md`).
 
 **Zero-point principle:** for numeric questions the score decays linearly from 1 at the true value to 0 at the distance of the *naive trap answer*: `s = max(0, 1 - |a - t| / d)`, where `d = |naive - t|`. Falling for the trap scores 0, while a small numerical difference still earns most of the credit.
 

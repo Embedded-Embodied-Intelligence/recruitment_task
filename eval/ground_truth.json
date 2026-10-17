@@ -31,13 +31,13 @@
       "type": "number",
       "truth": 0.056007,
       "naive": 0.05922,
-      "scale": 0.003213474229019353
+      "scale": 0.003213
     },
     "A4": {
       "type": "number",
       "truth": 211.0,
       "naive": 213.7,
-      "scale": 2.6999999999999886
+      "scale": 2.7
     },
     "B1": {
       "type": "set",
