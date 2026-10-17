@@ -1,7 +1,7 @@
 {
   "A1_unique_batches": 3000,
-  "A2_missing_humidity_batches": 208,
-  "A3_overall_defect_rate": 0.05601,
+  "A2_missing_humidity_batches": 200,
+  "A3_overall_defect_rate": 0.04762,
   "A4_median_mold_temp_c": 211.0,
   "B3_regime_change": {
     "line": "L2",
@@ -18,5 +18,5 @@
     "rework_cost_eur"
   ],
   "C1_best_supplier": "Beta",
-  "C2_optimal_humidity_pct": 45.2
+  "C2_optimal_humidity_pct": 36.8
 }

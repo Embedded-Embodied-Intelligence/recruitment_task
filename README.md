@@ -21,7 +21,7 @@ make install
 make test          # generator reproducibility, trap injection, planted effects detectable
 make data          # data/batches.csv, data/suppliers.csv + eval/ground_truth.json
 make data-notraps  # ablation variant without traps
-make reference     # re-run the expert notebook (scores 0.998)
+make reference     # re-run the expert notebook (scores 0.995)
 python -m edabench.scorer reference/reference_answer.json   # score any response
 ```
 

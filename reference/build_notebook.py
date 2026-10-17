@@ -116,7 +116,7 @@ print(f"qc minutes = {slope[1]:.1f} + {slope[0]:.3f} x defective_units")"""),
     ("md", "### 2.2 Univariate view: what a correlation matrix would suggest"),
     ("code", """cands = ["mold_temp", "humidity_pct", "cycle_time_s", "machine_age_years", "ambient_temp_c"]
 df[cands].corrwith(df["rate"]).round(3).to_frame("Pearson r with defect rate")"""),
-    ("code", """bins = pd.cut(df["humidity_pct"], np.arange(15, 76, 5))
+    ("code", """bins = pd.cut(df["humidity_pct"], np.arange(10, 81, 5))
 by_hum = df.groupby(bins, observed=True).apply(lambda g: g["defective_units"].sum() / g["units_produced"].sum())
 fig, ax = plt.subplots(figsize=(7, 3))
 ax.plot([b.mid for b in by_hum.index], by_hum.values * 100, color=BLUE, lw=2, marker="o", ms=6)

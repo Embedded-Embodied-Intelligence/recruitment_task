@@ -16,7 +16,7 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 
 | Column | Type | Notes |
 |---|---|---|
-| `batch_id` | str | `B-00001` ... |
+| `batch_id` | str | random 6-digit ids (`B-670945`), not sequential |
 | `production_date` | date | ISO `YYYY-MM-DD` |
 | `line` | str | `L1`-`L4` |
 | `shift` | str | Day / Night, with **inconsistent labels** |
@@ -45,7 +45,7 @@ logit(p_i) = -3.6
            + b_line[line_i]                    L1 0.0 | L2 0.1 | L3 0.2 | L4 0.9
            + b_supplier[supplier_i]            Alpha 0.0 | Beta -0.25 | Gamma -0.10
            + 0.03   * (mold_temp_c_i - 210)    hotter mold -> more defects
-           + 0.0012 * (humidity_pct_i - 45)^2  U-shape, optimum at 45 %
+           + 0.0012 * (humidity_pct_i - 36.62)^2  U-shape, optimum at 36.62 %
            - 0.04   * (cycle_time_s_i - 30)    rushed cycles -> more defects
            + 0.15   * [shift_i = Night]
            + 0.60   * [line_i = L2 and date_i >= 2025-06-16]   mold wear on L2
@@ -57,7 +57,7 @@ Covariates:
 - `supplier`: allocation depends on line. **Beta goes ~75 % to L4** (the oldest, worst line), and only 10-15 % to L1-L3.
 - `machine_age_years`: ~16 y on L4, ~5 y elsewhere. **No direct effect.**
 - `ambient_temp_c`: seasonal sine. It drives the mold controller (`mold_temp_c = 210 + 0.8·(ambient - 21) + noise`) but has **no direct effect**.
-- `humidity_pct ~ U(15, 75)`, symmetric around the optimum, so Pearson r ≈ 0.
+- `humidity_pct = 12 + 64 · Beta(1.5, 3)`: right-skewed (mostly dry hall). The optimum 36.62 is placed where cov(h, (h - h*)²) = 0, so Pearson r ≈ 0, yet it is neither the midpoint of the range (≈ 42) nor the mean (≈ 33).
 - `operator_id`: tied to a line, **no direct effect**.
 - `units_produced`: smaller batches on L4 (lognormal around 250 vs 600), so pooled and mean-of-rates differ.
 - Leakage: `rework_cost_eur ≈ 4.2 · defective_units · noise`, `qc_inspection_min ≈ 20 + 0.08 · defective_units + noise`. Both are **computed after QC from the outcome**.
@@ -95,7 +95,7 @@ The model returns one JSON object. The metric for each question matches the type
 | B2 | Salient | Which columns must not be used as predictors because they are determined by the outcome | set | DGP: {rework_cost_eur, qc_inspection_min} | F1 | 0.125 |
 | B3 | Salient | Date from which one line's defect level shifted persistently, and which line | date + line | DGP: L2, 2025-06-16 | line exact (gate) × `max(0, 1 - |Δdays| / 30)` | 0.125 |
 | C1 | Interpret | Supplier with the lowest defect rate after accounting for line, shift and process parameters | category | DGP: Beta | exact | 0.15 |
-| C2 | Interpret | Humidity level (%) at which the expected defect rate is lowest | float | DGP: 45 | `max(0, 1 - |a - 45| / 15)` | 0.15 |
+| C2 | Interpret | Humidity level (%) at which the expected defect rate is lowest | float | DGP: 36.62 | zero-point linear, d = \|range midpoint - truth\| (5.58) | 0.15 |
 
 Section weights: Describe 0.30, Salient 0.40, Interpret 0.30. A missing or unparseable field scores 0 for that question only.
 
@@ -104,7 +104,7 @@ Section weights: Describe 0.30, Salient 0.40, Interpret 0.30. A missing or unpar
 | Check | Result |
 |---|---|
 | Simpson reversal | Beta overall 5.7 % (worst); within every line Beta is lowest (e.g. L4: 7.9 % vs Alpha 9.7 %) |
-| Humidity Pearson r | 0.016 (U-shape invisible to linear correlation); binned rates clearly U-shaped, minimum at 45-50 % |
+| Humidity Pearson r | 0.016 in the prototype, -0.012 in the final data (U-shape invisible to linear correlation); binned rates clearly U-shaped |
 | Confounders | naive r: age 0.34, ambient 0.26. Multiple regression t: age -0.26, ambient 1.19 (not significant) |
 | True drivers | regression t: mold 27, humidity² 43, cycle -22, night 8.5, supplier Beta -12 |
 | Regime change | L2 weekly defect rate 4-5 % before 2025-06-16, 7-9 % after |
@@ -120,9 +120,20 @@ Section weights: Describe 0.30, Salient 0.40, Interpret 0.30. A missing or unpar
 
 ## 7a. Reference solution findings (Stage 3)
 
-`reference/reference_solution.ipynb` reaches every answer from the data alone and scores 0.998 against the key (the only loss is C2: 45.2 vs 45.0).
+`reference/reference_solution.ipynb` reaches every answer from the data alone and scores 0.995 against the key (the only loss is C2: 36.8 vs 36.62).
 
 **Emergent trap (not planted): variance misspecification.** With batch-level overdispersion, a binomial GLM weighted by batch size treats large batches as far more informative than they are. Its standard errors become too small, and with seed 42 it flags `operator_id` as significant (p = 9e-4) although operators have no effect. An empirical-logit OLS with HC3 errors recovers exactly the true driver set on all 10 tested seeds (`tests/test_reference.py`) and on 20 seeds in an offline check. B1 therefore also rewards choosing a model whose noise assumptions fit the data.
+
+## 7b. Calibration after pilot 00 (no code execution)
+
+Pilot 00 (Sonnet 5.5 in an incognito chat, where code execution is unavailable) scored **0.65 without running any code**, by reading the CSV in context and guessing. Two answers were guessable from the surface of the data rather than from analysis, so both were removed:
+
+| Leak | Why it leaked | Fix |
+|---|---|---|
+| A1 from ids | sequential `B-00001`…`B-03000`: the last id gives the count | random 6-digit ids from a child RNG (other draws unchanged) |
+| C2 at the range midpoint | uniform humidity 15-75 put the optimum exactly at the midpoint, 45 | right-skewed humidity, optimum 36.62; the naive answer is now the range midpoint, which scores 0 |
+
+The no-code run is kept as a **control condition** (`outputs/pilot_00_no_code_exec/`). It measures how much of the score can be reached by eyeballing, which a good EDA benchmark should keep low.
 
 ## 8. Ablation semantics
 
@@ -135,7 +146,7 @@ Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). A
 | mixed_units | L3 in °C | A4 naive closer to truth |
 | inconsistent_labels | canonical `Day`/`Night`, `SP-0x` | none |
 | aggregation | same batch-size distribution on all lines | A3 naive ≈ truth |
-| nonlinear_effect | humidity effect linear and decreasing | C2 truth = 75 (upper bound of the range) |
+| nonlinear_effect | humidity effect linear and decreasing | C2 truth = highest observed humidity |
 | confounding | machine age and ambient temperature independent of line and mold | none |
 | leakage | leakage columns not published | B2 truth = empty set |
 | simpson_paradox | supplier allocation independent of line | C1 naive = truth |

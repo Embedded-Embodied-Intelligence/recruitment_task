@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import statsmodels.formula.api as smf
 
-from edabench.generate import DIRECT_DRIVERS, generate
+from edabench.generate import DIRECT_DRIVERS, HUMIDITY_OPTIMUM, generate
 from tests.test_generate import reference_clean
 
 FORMULA = (
@@ -48,4 +48,4 @@ def test_reference_recovers_driver_set_supplier_and_optimum(seed):
     assert min(sup, key=sup.get) == "Beta"
 
     h_star = -full.params["humidity_pct"] / (2 * full.params["I(humidity_pct ** 2)"])
-    assert abs(h_star - 45) < 2
+    assert abs(h_star - HUMIDITY_OPTIMUM) < 2

@@ -49,10 +49,10 @@ A fixed relative tolerance would not work here. In A1 the trap (not removing dup
 | Q | Truth | Naive trap answer | Scale | Trap |
 |---|---|---|---|---|
 | A1 | 3000 | 3060 | 60 | duplicates kept |
-| A2 | 208 | 57 | 151 | `-1` sentinel not treated as missing |
-| A3 | 0.056007 | 0.059220 | 0.003213 | mean of batch rates instead of the pooled rate |
+| A2 | 200 | 43 | 157 | `-1` sentinel not treated as missing |
+| A3 | 0.047621 | 0.050288 | 0.002667 | mean of batch rates instead of the pooled rate |
 | A4 | 211.0 | 213.7 | 2.7 | °F readings on L3 and zeros kept |
-| C2 | 45 | — | 15 | (DGP optimum; a 15-point miss means the U-shape was not found) |
+| C2 | 36.62 | 42.2 | 5.58 | midpoint of the observed humidity range (a guess without modelling) |
 
 ### Sets (B1 drivers, B2 leakage): F1
 
@@ -81,7 +81,7 @@ The line is a gate: a correct date on the wrong line is a wrong finding. Within 
 | Correct answer → 1.0, empty or no answer → 0.0 | `test_correct_answer_scores_one`, `test_no_answer_scores_zero` |
 | Every trap answer scores 0 on its question | `test_trap_answers_score_zero_on_their_questions` |
 | A partial answer scores strictly between 0 and 1 | `test_partial_answer_is_strictly_between` |
-| Expert reference solution ≈ 1 (0.998) | `test_reference_solution_scores_near_one` |
+| Expert reference solution ≈ 1 (0.995) | `test_reference_solution_scores_near_one` |
 | Bounded, monotone in the error, symmetric | `test_number_score_bounded_monotone_symmetric` |
 | Avoiding one more trap never lowers the score | `test_more_traps_avoided_never_scores_lower` |
 | One malformed field costs exactly its weight | `test_one_bad_field_costs_one_question` |

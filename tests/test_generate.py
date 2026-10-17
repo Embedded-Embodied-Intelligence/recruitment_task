@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from edabench.generate import CANARY, TRAPS, generate, resolve_traps, write
+from edabench.generate import CANARY, HUMIDITY_OPTIMUM, TRAPS, generate, resolve_traps, write
 
 SEED = 42
 
@@ -105,8 +105,8 @@ def test_t8_leakage_columns(full, clean):
 
 def test_ablation_changes_only_the_switched_trap(full):
     no_dups = generate(SEED, {"duplicates": False})
-    dedup = full.batches.drop_duplicates().sort_values("batch_id").reset_index(drop=True)
-    pd.testing.assert_frame_equal(dedup, no_dups.batches)
+    by_id = lambda df: df.sort_values("batch_id").reset_index(drop=True)
+    pd.testing.assert_frame_equal(by_id(full.batches.drop_duplicates()), by_id(no_dups.batches))
 
 
 # --- planted effects are real and detectable ---------------------------------------
@@ -119,8 +119,22 @@ def test_t5_pooled_differs_from_mean(full):
 def test_t6_humidity_u_shape_invisible_to_pearson(full):
     df = reference_clean(full.batches, full.suppliers).dropna(subset=["humidity_pct"])
     assert abs(df["rate"].corr(df["humidity_pct"])) < 0.1
-    bins = df.groupby(pd.cut(df["humidity_pct"], [15, 25, 40, 50, 65, 75]), observed=True).apply(pooled)
+    h = HUMIDITY_OPTIMUM
+    bins = df.groupby(pd.cut(df["humidity_pct"], [0, h - 15, h - 5, h + 5, h + 15, 100]), observed=True).apply(pooled)
     assert bins.iloc[2] < bins.iloc[0] and bins.iloc[2] < bins.iloc[-1]
+
+
+def test_c2_optimum_is_not_guessable_from_the_range(full):
+    c2 = full.ground_truth["questions"]["C2"]
+    assert c2["scale"] > 3 and abs(c2["naive"] - c2["truth"]) == pytest.approx(c2["scale"])
+    df = reference_clean(full.batches, full.suppliers)
+    assert abs(df["humidity_pct"].mean() - c2["truth"]) > 3
+
+
+def test_batch_ids_do_not_reveal_the_count(full):
+    nums = full.batches["batch_id"].str[2:].astype(int)
+    assert nums.max() > 10 * full.ground_truth["questions"]["A1"]["truth"]
+    assert not nums.drop_duplicates().is_monotonic_increasing
 
 
 def test_t7_confounder_correlates_but_has_no_direct_effect(full):
@@ -152,7 +166,7 @@ def _ols_t(df: pd.DataFrame) -> pd.Series:
     X["night"] = (df["shift"] == "Night").astype(float)
     for c in ("mold_temp", "cycle_time_s", "machine_age_years", "ambient_temp_c"):
         X[c] = df[c]
-    X["hum_sq"] = (df["humidity_pct"] - 45) ** 2
+    X["hum_sq"] = (df["humidity_pct"] - HUMIDITY_OPTIMUM) ** 2
     X["regime"] = ((df["line"] == "L2") & (df["production_date"] >= "2025-06-16")).astype(float)
     X.insert(0, "const", 1.0)
     r = df["rate"].clip(1e-4, 1 - 1e-4)

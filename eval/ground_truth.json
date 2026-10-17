@@ -23,15 +23,15 @@
     },
     "A2": {
       "type": "number",
-      "truth": 208,
-      "naive": 57,
-      "scale": 151.0
+      "truth": 200,
+      "naive": 43,
+      "scale": 157.0
     },
     "A3": {
       "type": "number",
-      "truth": 0.056007,
-      "naive": 0.05922,
-      "scale": 0.003213
+      "truth": 0.047621,
+      "naive": 0.050288,
+      "scale": 0.002667
     },
     "A4": {
       "type": "number",
@@ -70,8 +70,9 @@
     },
     "C2": {
       "type": "number",
-      "truth": 45.0,
-      "scale": 15.0
+      "truth": 36.62,
+      "naive": 42.2,
+      "scale": 5.58
     }
   }
 }

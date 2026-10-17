@@ -25,6 +25,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from edabench.config import load_config
 
@@ -61,7 +62,15 @@ SUPPLIERS = pd.DataFrame(
 
 REGIME_LINE = "L2"
 REGIME_DATE = pd.Timestamp("2025-06-16")
-HUMIDITY_OPTIMUM = 45.0
+# Hall humidity is right-skewed (a heated hall is mostly dry): 12 + 64 * Beta(1.5, 3).
+# The optimum is placed where cov(h, (h - h*)^2) = 0, so the U-shaped effect has Pearson
+# r ~ 0 with the defect rate, and it does NOT sit at the middle of the range, so
+# "guess the midpoint" does not find it (pilot 00 guessed 45 without running code).
+HUMIDITY_LO, HUMIDITY_HI = 12.0, 76.0
+HUMIDITY_DIST = stats.beta(1.5, 3.0)
+_mu, _var = HUMIDITY_DIST.mean(), HUMIDITY_DIST.var()
+_m3 = HUMIDITY_DIST.moment(3) - 3 * _mu * HUMIDITY_DIST.moment(2) + 2 * _mu**3
+HUMIDITY_OPTIMUM = round(HUMIDITY_LO + (HUMIDITY_HI - HUMIDITY_LO) * (_mu + _m3 / (2 * _var)), 2)
 DIRECT_DRIVERS = ["cycle_time_s", "humidity_pct", "mold_temp", "shift"]
 LEAKAGE_COLUMNS = ["qc_inspection_min", "rework_cost_eur"]
 BEST_SUPPLIER = "Beta"
@@ -131,7 +140,8 @@ def _simulate(rng: np.random.Generator, n: int, traps: dict[str, bool]) -> pd.Da
     mold_noise = rng.normal(0, 6, n)
     mold = 210 + (0.8 * (ambient - 21) if traps["confounding"] else 0) + mold_noise
 
-    humidity = rng.uniform(15, 75, n)
+    u_humidity = rng.random(n)
+    humidity = HUMIDITY_LO + (HUMIDITY_HI - HUMIDITY_LO) * HUMIDITY_DIST.ppf(u_humidity)
     cycle = rng.normal(30, 4, n).clip(18, 45)
     shift = np.where(rng.random(n) < 0.6, "Day", "Night")
     operator_k = rng.integers(0, 6, n)
@@ -266,6 +276,12 @@ def _ground_truth(unique_rows, published, masks, true, traps, seed) -> dict:
     rate_by_supplier = true.groupby("supplier_name")[["defective_units", "units_produced"]].sum()
     naive_supplier = (rate_by_supplier["defective_units"] / rate_by_supplier["units_produced"]).idxmin()
 
+    # C2: without the U-shape the effect is monotone decreasing, so the optimum is the top
+    # of the observed range. The naive answer is the midpoint of the observed range.
+    hum_valid = unique_rows["humidity_pct"][~masks["humidity_missing"]]
+    hum_mid = round(float((hum_valid.min() + hum_valid.max()) / 2), 2)
+    c2_truth = HUMIDITY_OPTIMUM if traps["nonlinear_effect"] else round(float(hum_valid.max()), 2)
+
     # The prompt asks for the first *production date* affected, which is the first day
     # the line actually ran on or after the change.
     l2_days = unique_rows.loc[unique_rows["line"] == REGIME_LINE, "production_date"]
@@ -286,7 +302,8 @@ def _ground_truth(unique_rows, published, masks, true, traps, seed) -> dict:
                "truth": {"line": REGIME_LINE, "date": first_regime_day} if traps["regime_change"] else None,
                "scale_days": 30},
         "C1": {"type": "category", "truth": BEST_SUPPLIER, "naive": naive_supplier},
-        "C2": {"type": "number", "truth": HUMIDITY_OPTIMUM if traps["nonlinear_effect"] else 75.0, "scale": 15.0},
+        "C2": {"type": "number", "truth": c2_truth, "naive": hum_mid,
+               "scale": _scale(hum_mid, c2_truth, 3.0)},
     }
     return {"canary": CANARY, "seed": seed, "traps": traps, "n_published_rows": len(published), "questions": q}
 
@@ -296,6 +313,13 @@ def generate(seed: int, traps: dict[str, bool] | None = None, n_batches: int = 3
     rng = np.random.default_rng(seed)
     true = _simulate(rng, n_batches, traps)
     unique_rows, published, masks = _corrupt(rng, true, traps)
+    # Batch ids are random, not sequential: with B-00001..B-03000 the number of unique
+    # batches could be read off the last id without any computation (pilot 00 did).
+    # A child generator keeps every other draw identical to earlier dataset versions.
+    ids = np.random.default_rng([seed, 1]).choice(np.arange(100_000, 1_000_000), n_batches, replace=False)
+    id_map = dict(zip(true["batch_id"], [f"B-{i}" for i in ids]))
+    unique_rows["batch_id"] = unique_rows["batch_id"].map(id_map)
+    published["batch_id"] = published["batch_id"].map(id_map)
     truth = _ground_truth(unique_rows, published, masks, true, traps, seed)
     return Dataset(batches=published, suppliers=SUPPLIERS.copy(), ground_truth=truth)
 

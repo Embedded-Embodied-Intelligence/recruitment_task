@@ -1,0 +1,12 @@
+{
+  "run_id": "pilot_00_no_code_exec",
+  "model": "Sonnet 5.5",
+  "effort": "Medium (Recommended/Default)",
+  "interface": "Claude Desktop, incognito chat",
+  "code_execution": false,
+  "note": "Incognito chats cannot run code (support.claude.com/articles/12260368). The model answered from the CSV contents in context. Invalid as a task run (the task requires executing Python); kept as a no-tool control condition.",
+  "dataset_version": "v1 (sequential batch ids, uniform humidity 15-75), seed 42, batches.csv sha256 28a81a008ad121be...",
+  "answer_key": "ground_truth_v1.json",
+  "date": "2026-10-17",
+  "operator": "KamPieDev"
+}
