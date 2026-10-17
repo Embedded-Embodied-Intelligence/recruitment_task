@@ -4,6 +4,10 @@
 
 **Result:** a synthetic manufacturing dataset with a known data-generating process, a ten-question prompt covering the three EDA steps (describe the data, identify salient features, interpret them), and a deterministic partial-credit scorer. On the final dataset (v4), with the full prompt, Claude models with pandas and statsmodels score **0.81-0.99** (Haiku 5.5: mean 0.879, Sonnet 5.5: 0.960, Opus 5.5: 0.969; 23 runs). No run scores 1. Every model loses points on questions where a detected problem must also be *estimated* correctly.
 
+The weighted mean hides how partial these answers are, because six of the ten questions are solved by every model. Two numbers show it better (full prompt, 13 runs):
+- **Exact answers:** a run gets on average 5.6 (Haiku), 6.6 (Sonnet) and 6.3 (Opus) of the ten answers exactly right.
+- **The four hard questions** (A4, B3, C2, C3): Haiku scores 0.73, Sonnet 0.91 and Opus 0.93. On A4 no run comes within 0.95 of the truth.
+
 ## Deliverables
 
 | # | Deliverable | Where |

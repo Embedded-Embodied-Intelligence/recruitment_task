@@ -135,7 +135,7 @@ code { font-family: var(--font-data); font-size: 0.85em; }
   <section aria-labelledby="h-summary">
     <h2 id="h-summary">Mean score per model</h2>
     <div class="tiles" id="tiles"></div>
-    <p class="small muted">Full prompt. A score of 1 is the exact answer on all ten questions; 0 on a question is the naive answer its trap produces.</p>
+    <p class="small muted">Full prompt. A score of 1 is the exact answer on all ten questions; 0 on a question is the naive answer its trap produces. Hard questions are A4, B3, C2 and C3.</p>
   </section>
 
   <section aria-labelledby="h-grid">
@@ -208,14 +208,19 @@ $("title").textContent = DATA.title || "Benchmark results";
 $("eyebrow").textContent = `Dataset ${DATA.dataset} · ${DATA.runs.length} scored runs`;
 $("headline").textContent = DATA.headline || "";
 
-// Tiles
+// Tiles. The weighted mean hides misses on the few hard questions, so each tile also gives the
+// number of exactly right answers and the weighted score on the questions some model gets wrong.
+const HARD = ["A4", "B3", "C2", "C3"];
+const exactCount = (r) => r.questions.filter((q) => q.score >= 0.999).length;
+const hardScore = (r) => { const qs = r.questions.filter((q) => HARD.includes(q.qid)); const w = qs.reduce((a, q) => a + q.weight, 0); return w ? qs.reduce((a, q) => a + q.weight * q.score, 0) / w : 0; };
 for (const m of models) {
   const rs = runsOf(m, "full"); if (!rs.length) continue;
   const t = rs.map((r) => r.total);
   $("tiles").append(el("div", { class: "tile" },
     el("span", { class: "label", text: label(m) }),
     el("span", { class: "value", text: fmt(mean(t)) }),
-    el("span", { class: "sub", text: `${rs.length} runs · sd ${fmt(sd(t))} · ${fmt(Math.min(...t))}–${fmt(Math.max(...t))}` })));
+    el("span", { class: "sub", text: `${rs.length} runs · sd ${fmt(sd(t))} · ${fmt(Math.min(...t))}–${fmt(Math.max(...t))}` }),
+    el("span", { class: "sub", text: `exact answers ${fmt(mean(rs.map(exactCount)), 1)}/10 · hard questions ${fmt(mean(rs.map(hardScore)))}` })));
 }
 
 // Score grid with a variant toggle
