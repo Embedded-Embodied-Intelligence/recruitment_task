@@ -49,7 +49,7 @@ Share of runs whose answer was closer to the naive (trap) answer than to the tru
 `+x` = listed but wrong, `-x` = missed; counts over runs.
 
 - claude-haiku / full / B1: `+operator_id` x2
-- claude-haiku / no_quality_hint / B1: `-cycle_time_s` x2, `-shift` x2, `-humidity_pct` x2, `-mold_temp` x2
+- claude-haiku / no_quality_hint / B1: `-humidity_pct` x2, `-cycle_time_s` x2, `-mold_temp` x2, `-shift` x2
 - claude-haiku / no_quality_hint / B2: `-rework_cost_eur` x2, `-qc_inspection_min` x2
 
 ## Prompt ablation: full minus no_quality_hint

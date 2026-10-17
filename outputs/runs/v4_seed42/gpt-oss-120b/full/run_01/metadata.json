@@ -4,16 +4,16 @@
   "model_id": "openai/gpt-oss-120b",
   "effort": null,
   "variant": "full",
-  "started_utc": "2026-10-17T22:35:55+00:00",
-  "duration_s": 715.3,
+  "started_utc": "2026-10-17T22:59:20+00:00",
+  "duration_s": 470.7,
   "temperature": 1.0,
   "max_turns": 25,
-  "hit_turn_limit": true,
-  "n_model_calls": 25,
-  "n_tool_calls": 25,
+  "hit_turn_limit": false,
+  "n_model_calls": 22,
+  "n_tool_calls": 22,
   "usage": {
-    "prompt_tokens": 99366,
-    "completion_tokens": 7926
+    "prompt_tokens": 58097,
+    "completion_tokens": 4431
   },
   "prompt_sha256": "e2e19d68c9ba206a",
   "data_sha256": {

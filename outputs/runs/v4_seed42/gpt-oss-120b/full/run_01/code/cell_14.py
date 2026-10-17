@@ -1,1 +1,1 @@
-print(batches.columns.tolist())
+batches['humidity_pct'].head(20)

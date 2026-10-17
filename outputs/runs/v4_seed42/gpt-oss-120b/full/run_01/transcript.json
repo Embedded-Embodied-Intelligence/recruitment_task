@@ -8,159 +8,159 @@
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_8114dc29-e3e9-4e94-b96e-b93c2174039a",
+    "id": "fc_4ffa7129-c484-4430-a8e5-46162f102871",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, numpy as np, os, json, sys, matplotlib.pyplot as plt, warnings, textwrap, math, datetime, itertools, re\\n\\nbatches = pd.read_csv('batches.csv')\\nsuppliers = pd.read_csv('suppliers.csv')\\nmaintenance = pd.read_csv('maintenance.csv')\\nprint('batches shape', batches.shape)\\nprint('columns', batches.columns.tolist())\\nprint(batches.head())\\nprint('suppliers shape', suppliers.shape, 'cols', suppliers.columns.tolist())\\nprint(suppliers.head())\\nprint('maintenance shape', maintenance.shape, 'cols', maintenance.columns.tolist())\\nprint(maintenance.head())\\n\"}"
+     "arguments": "{\"code\":\"import pandas as pd, os, json, numpy as np, matplotlib.pyplot as plt, sys, warnings, textwrap, math, itertools, datetime as dt\\nfiles = os.listdir()\\nprint(files)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_8114dc29-e3e9-4e94-b96e-b93c2174039a",
-  "content": "batches shape (3060, 15)\ncolumns ['batch_id', 'production_date', 'line', 'shift', 'operator_id', 'supplier_code', 'machine_age_years', 'ambient_temp_c', 'mold_temp', 'humidity_pct', 'cycle_time_s', 'units_produced', 'defective_units', 'qc_inspection_min', 'rework_cost_eur']\n   batch_id production_date line  shift operator_id supplier_code  \\\n0  B-670945      01/06/2025   L1  Night       OP-01         SP-01   \n1  B-654357      01/06/2025   L1      N       OP-04         sp-01   \n2  B-299201      01/06/2025   L1      D       OP-06         SP-02   \n3  B-181224      01/06/2025   L1  Night       OP-02         SP-01   \n4  B-854898      2025-01-06   L2    Day       OP-12         SP-01   \n\n   machine_age_years  ambient_temp_c  mold_temp  humidity_pc\n...\n ['supplier_code', 'supplier_name', 'resin_grade', 'country', 'pre_dried', 'recipe_cycle_time_s']\n  supplier_code supplier_name resin_grade country pre_dried  \\\n0         SP-01         Alpha     PP-H350      DE        no   \n1         SP-02          Beta     PP-H350      PL       yes   \n2         SP-03         Gamma     PP-H420      CZ       yes   \n\n   recipe_cycle_time_s  \n0                   30  \n1                   30  \n2                   36  \nmaintenance shape (75, 4) cols ['date', 'line', 'event', 'note']\n         date line          event note\n0  2024-12-29   L3  mold_cleaning  NaN\n1  2025-01-03   L1  mold_cleaning  NaN\n2  2025-01-03   L4  mold_cleaning  NaN\n3  2025-01-05   L2  mold_cleaning  NaN\n4  2025-01-10   L3  mold_cleaning  NaN\n\n[output truncated: print less, e.g. head() or aggregates]"
+  "tool_call_id": "fc_4ffa7129-c484-4430-a8e5-46162f102871",
+  "content": "['suppliers.csv', 'batches.csv', 'maintenance.csv']\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_f84b13a2-6aed-4fd9-8e3e-bd9e8662ea58",
+    "id": "fc_d8af5f12-fa43-4b55-ab41-b71d406978e0",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"print(batches.columns)\"}"
+     "arguments": "{\"code\":\"batches = pd.read_csv('batches.csv')\\nsuppliers = pd.read_csv('suppliers.csv')\\nmaintenance = pd.read_csv('maintenance.csv')\\nprint('batches shape', batches.shape)\\nprint('suppliers shape', suppliers.shape)\\nprint('maintenance shape', maintenance.shape)\\nprint('\\\\nBatches head:')\\nprint(batches.head())\\nprint('\\\\nSuppliers head:')\\nprint(suppliers.head())\\nprint('\\\\nMaintenance head:')\\nprint(maintenance.head())\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_f84b13a2-6aed-4fd9-8e3e-bd9e8662ea58",
-  "content": "Index(['batch_id', 'production_date', 'line', 'shift', 'operator_id',\n       'supplier_code', 'machine_age_years', 'ambient_temp_c', 'mold_temp',\n       'humidity_pct', 'cycle_time_s', 'units_produced', 'defective_units',\n       'qc_inspection_min', 'rework_cost_eur'],\n      dtype='str')\n"
+  "tool_call_id": "fc_d8af5f12-fa43-4b55-ab41-b71d406978e0",
+  "content": "batches shape (3060, 15)\nsuppliers shape (3, 6)\nmaintenance shape (75, 4)\n\nBatches head:\n   batch_id production_date line  shift operator_id supplier_code  \\\n0  B-670945      01/06/2025   L1  Night       OP-01         SP-01   \n1  B-654357      01/06/2025   L1      N       OP-04         sp-01   \n2  B-299201      01/06/2025   L1      D       OP-06         SP-02   \n3  B-181224      01/06/2025   L1  Night       OP-02         SP-01   \n4  B-854898      2025-01-06   L2    Day       OP-12         SP-01   \n\n   machine_age_years  ambient_temp_c  mold_temp  humidity_pct  cycle_time_s  \\\n0                3.7            15.8      214.8          28.6          30.1   \n1                6.9            14.6      206.1          27.6          31.1   \n2        \n...\n             30               22.1           119.67  \n4             813               28               22.5           115.56  \n\nSuppliers head:\n  supplier_code supplier_name resin_grade country pre_dried  \\\n0         SP-01         Alpha     PP-H350      DE        no   \n1         SP-02          Beta     PP-H350      PL       yes   \n2         SP-03         Gamma     PP-H420      CZ       yes   \n\n   recipe_cycle_time_s  \n0                   30  \n1                   30  \n2                   36  \n\nMaintenance head:\n         date line          event note\n0  2024-12-29   L3  mold_cleaning  NaN\n1  2025-01-03   L1  mold_cleaning  NaN\n2  2025-01-03   L4  mold_cleaning  NaN\n3  2025-01-05   L2  mold_cleaning  NaN\n4  2025-01-10   L3  mold_cleaning  NaN\n\n[output truncated: print less, e.g. head() or aggregates]"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_f87c7089-a8c4-4b97-9d78-83636837de57",
+    "id": "fc_5d461a0d-df1e-4860-ae02-3deed5c37ef2",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"# Convert dates\\nbatches['production_date'] = pd.to_datetime(batches['production_date'], errors='coerce')\\nprint('date parse errors', batches['production_date'].isna().sum())\\n# check unique batch ids\\nprint('unique batch ids', batches['batch_id'].nunique())\\n# missing humidity\\nprint('humidity missing or non-numeric?')\\n# convert humidity to numeric\\nbatches['humidity_pct_num'] = pd.to_numeric(batches['humidity_pct'], errors='coerce')\\nmissing_humidity = batches['humidity_pct_num'].isna().sum()\\nprint('missing humidity count', missing_humidity)\\n# overall defect rate\\nvalid = batches['units_produced']\\u003e0\\noverall_defect = batches.loc[valid, 'defective_units'].sum() / batches.loc[valid, 'units_produced'].sum()\\nprint('overall defect rate', overall_defect)\\n# median mold temp valid numeric\\nbatches['mold_temp_num'] = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nmedian_mold = batches['mold_temp_num'].median()\\nprint('median mold temp', median_mold)\\n# summary of candidate variables\\ncandidates = ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\nprint(batches[candidates].head())\\n\"}"
+     "arguments": "{\"code\":\"print(batches.columns)\\nprint(batches.dtypes)\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_f87c7089-a8c4-4b97-9d78-83636837de57",
-  "content": "date parse errors 1952\nunique batch ids 3000\nhumidity missing or non-numeric?\nmissing humidity count 56\noverall defect rate 0.055054575636677705\nmedian mold temp 216.1\n   mold_temp  humidity_pct  cycle_time_s  machine_age_years  ambient_temp_c  \\\n0      214.8          28.6          30.1                3.7            15.8   \n1      206.1          27.6          31.1                6.9            14.6   \n2      208.8          18.0          30.1                5.1            14.9   \n3      207.5          46.7          28.1                6.0            15.1   \n4      205.7          42.5          28.0                5.6            18.2   \n\n  operator_id  shift  \n0       OP-01  Night  \n1       OP-04      N  \n2       OP-06      D  \n3       OP-02  Night  \n4       OP-12    Day  \n"
+  "tool_call_id": "fc_5d461a0d-df1e-4860-ae02-3deed5c37ef2",
+  "content": "Index(['batch_id', 'production_date', 'line', 'shift', 'operator_id',\n       'supplier_code', 'machine_age_years', 'ambient_temp_c', 'mold_temp',\n       'humidity_pct', 'cycle_time_s', 'units_produced', 'defective_units',\n       'qc_inspection_min', 'rework_cost_eur'],\n      dtype='str')\nbatch_id                 str\nproduction_date          str\nline                     str\nshift                    str\noperator_id              str\nsupplier_code            str\nmachine_age_years    float64\nambient_temp_c       float64\nmold_temp            float64\nhumidity_pct         float64\ncycle_time_s         float64\nunits_produced         int64\ndefective_units        int64\nqc_inspection_min    float64\nrework_cost_eur      float64\ndtype: object\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_35e43604-c072-4824-b8ac-446129daa643",
+    "id": "fc_f979b8d0-d510-4b26-a7ec-ce89268e7280",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"# compute defect_rate per batch\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# drop rows with missing units\\nbatches_clean = batches.dropna(subset=['units_produced','defective_units'])\\n# Ensure numeric\\nbatches_clean = batches_clean[(batches_clean['units_produced']\\u003e0)]\\n\\n# For each line, aggregate by production_date (date only)\\nbatches_clean['date'] = batches_clean['production_date'].dt.date\\nline_dates = batches_clean.groupby(['line','date'])['defect_rate'].mean().reset_index()\\n\\n# Function to detect abrupt shift: compute overall mean before and after each candidate date, require at least 30 days data before and after, and difference \\u003e 0.02 (2 percentage points) sustained.\\nimport numpy as np, pandas as pd\\n\\ndef find_shift(df_line):\\n    dates = sorted(df_line['date'].unique())\\n    rates = df_line.set_index('date')['defect_rate']\\n    # fill missing dates with nan\\n    full = pd.Series(index=pd.date_range(dates[0], dates[-1]), dtype=float)\\n    full.loc[rates.index] = rates.values\\n    # compute rolling means? We'll brute.\\n    for cut in dates[30:-30]:\\n        before = full[:cut]\\n        after = full[cut:]\\n        if before.notna().sum()\\u003c20 or after.notna().sum()\\u003c20:\\n            continue\\n        mean_before = before.mean()\\n        mean_after = after.mean()\\n        if abs(mean_after-mean_before)\\u003e0.02:\\n            # check that after remains relatively stable (std low)\\n            if after.std()\\u003c0.03:\\n                return cut\\n    return None\\n\\nshifts = {}\\nfor line, grp in line_dates.groupby('line'):\\n    d = find_shift(grp)\\n    if d:\\n        shifts[line]=d\\nprint('shifts found', shifts)\\n\"}"
+     "arguments": "{\"code\":\"# Parse dates robustly\\nimport dateutil.parser as dp\\n\\ndef parse_date(x):\\n    try:\\n        return pd.to_datetime(x, infer_datetime_format=True, errors='coerce')\\n    except Exception:\\n        return pd.NaT\\n\\nbatches['prod_date_parsed'] = batches['production_date'].apply(parse_date)\\nprint(batches['production_date'].head(10))\\nprint(batches['prod_date_parsed'].head(10))\\nprint('NaT count', batches['prod_date_parsed'].isna().sum())\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_35e43604-c072-4824-b8ac-446129daa643",
-  "content": "shifts found {}\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/1642291963.py:23: Pandas4Warning: Slicing with a datetime.date object is deprecated. Explicitly cast to Timestamp instead.\n  before = full[:cut]\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/1642291963.py:24: Pandas4Warning: Slicing with a datetime.date object is deprecated. Explicitly cast to Timestamp instead.\n  after = full[cut:]\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/1642291963.py:23: Pandas4Warning: Slicing with a datetime.date object is deprecated. Explicitly cast to Timestamp instead.\n  before = full[:cut]\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/1642291963.py:24: Pandas4Warning: Slicing with a datetime.date object is deprecated. Explicitly cast to Timestamp instead.\n  after = full[cut:]\n"
+  "tool_call_id": "fc_f979b8d0-d510-4b26-a7ec-ce89268e7280",
+  "content": "0    01/06/2025\n1    01/06/2025\n2    01/06/2025\n3    01/06/2025\n4    2025-01-06\n5    2025-01-06\n6    2025-01-06\n7    2025-01-06\n8    2025-01-06\n9    2025-01-06\nName: production_date, dtype: str\n0   NaT\n1   NaT\n2   NaT\n3   NaT\n4   NaT\n5   NaT\n6   NaT\n7   NaT\n8   NaT\n9   NaT\nName: prod_date_parsed, dtype: datetime64[s]\nNaT count 3060\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_457d6bce-d979-4fee-b808-88468ce441cc",
+    "id": "fc_12037db3-b1f3-49ea-8def-8febb94cacdb",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import statsmodels.api as sm\\nfrom patsy import dmatrices\\n# drop rows with missing essential variables\\ncols_needed = ['defect_rate','mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\ndf = batches.copy()\\n# convert numeric columns\\nnumeric_cols = ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','defect_rate']\\nfor c in numeric_cols:\\n    df[c] = pd.to_numeric(df[c], errors='coerce')\\n# drop rows with any missing among needed\\ndf_model = df.dropna(subset=cols_needed)\\n# Build formula\\nformula = 'defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)'\\n# Use OLS\\ny, X = dmatrices(formula, data=df_model, return_type='dataframe')\\nmodel = sm.OLS(y, X).fit(cov_type='HC3')\\nprint(model.summary())\\n\"}"
+     "arguments": "{\"code\":\"batches['prod_date_parsed'] = pd.to_datetime(batches['production_date'], dayfirst=True, errors='coerce')\\nprint(batches['prod_date_parsed'].head(10))\\nprint('NaT count', batches['prod_date_parsed'].isna().sum())\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_457d6bce-d979-4fee-b808-88468ce441cc",
-  "content": "                            OLS Regression Results                            \n==============================================================================\nDep. Variable:            defect_rate   R-squared:                       0.329\nModel:                            OLS   Adj. R-squared:                  0.320\nMethod:                 Least Squares   F-statistic:                     30.36\nDate:                Sun, 18 Oct 2026   Prob (F-statistic):          5.05e-177\nTime:                        00:37:31   Log-Likelihood:                 5903.8\nNo. Observations:                3004   AIC:                        -1.173e+04\nDf Residuals:                    2966   BIC:                        -1.150e+04\nDf Model:                          37  \n...\n              0.0021      0.000     16.198      0.000       0.002       0.002\n==============================================================================\nOmnibus:                     1362.633   Durbin-Watson:                   1.794\nProb(Omnibus):                  0.000   Jarque-Bera (JB):            11896.570\nSkew:                           1.941   Prob(JB):                         0.00\nKurtosis:                      11.943   Cond. No.                     7.05e+03\n==============================================================================\n\nNotes:\n[1] Standard Errors are heteroscedasticity robust (HC3)\n[2] The condition number is large, 7.05e+03. This might indicate that there are\nstrong multicollinearity or other numerical problems.\n\n[output truncated: print less, e.g. head() or aggregates]"
+  "tool_call_id": "fc_12037db3-b1f3-49ea-8def-8febb94cacdb",
+  "content": "0   2025-06-01\n1   2025-06-01\n2   2025-06-01\n3   2025-06-01\n4          NaT\n5          NaT\n6          NaT\n7          NaT\n8          NaT\n9          NaT\nName: prod_date_parsed, dtype: datetime64[us]\nNaT count 2104\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_d6d975cd-d151-45f6-b3e6-78d8ebcb7c8e",
+    "id": "fc_a9a6bad2-294b-46e8-8f80-1d9a4f815158",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"unique_ids = batches['batch_id'].nunique()\\nprint('unique batch_id count', unique_ids)\\n# check duplicates\\nprint('duplicate count', len(batches)-unique_ids)\\n\"}"
+     "arguments": "{\"code\":\"sample_dates = batches['production_date'].dropna().unique()[:20]\\nprint(sample_dates)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_d6d975cd-d151-45f6-b3e6-78d8ebcb7c8e",
-  "content": "unique batch_id count 3000\nduplicate count 60\n"
+  "tool_call_id": "fc_a9a6bad2-294b-46e8-8f80-1d9a4f815158",
+  "content": "<StringArray>\n['01/06/2025', '2025-01-06', '06/01/2025', '01/07/2025', '2025-01-07',\n '07/01/2025', '2025-01-08', '08/01/2025', '01/09/2025', '2025-01-09',\n '09/01/2025', '01/10/2025', '2025-01-10', '10/01/2025', '01/11/2025',\n '2025-01-11', '05/13/2025', '11/01/2025', '2025-01-12', '12/01/2025']\nLength: 20, dtype: str\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_27d39317-0df5-40d9-9792-adce91d2b541",
+    "id": "fc_ebc8ab84-e694-498e-8f1a-b9af7303f53c",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"missing_humidity = batches['humidity_pct_num'].isna().sum()\\nprint('missing_humidity', missing_humidity)\"}"
+     "arguments": "{\"code\":\"def try_parse(series):\\n    # try multiple formats\\n    fmt1 = pd.to_datetime(series, format='%d/%m/%Y', errors='coerce')\\n    fmt2 = pd.to_datetime(series, format='%m/%d/%Y', errors='coerce')\\n    fmt3 = pd.to_datetime(series, errors='coerce')\\n    # combine: if fmt1 not NaT use it else fmt2 else fmt3\\n    combined = fmt1.copy()\\n    mask = combined.isna()\\n    combined[mask] = fmt2[mask]\\n    mask = combined.isna()\\n    combined[mask] = fmt3[mask]\\n    return combined\\n\\nbatches['prod_date'] = try_parse(batches['production_date'])\\nprint('parsed count', batches['prod_date'].notna().sum())\\nprint('min', batches['prod_date'].min(), 'max', batches['prod_date'].max())\\nprint(batches['prod_date'].value_counts().head())\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_27d39317-0df5-40d9-9792-adce91d2b541",
-  "content": "missing_humidity 56\n"
+  "tool_call_id": "fc_ebc8ab84-e694-498e-8f1a-b9af7303f53c",
+  "content": "parsed count 1495\nmin 2025-01-02 00:00:00 max 2025-12-09 00:00:00\nprod_date\n2025-07-29    12\n2025-07-20    12\n2025-01-27    11\n2025-05-06    11\n2025-05-23    11\nName: count, dtype: int64\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_01c5bd62-5f12-4788-80b5-634af037458f",
+    "id": "fc_dc582afb-fc97-4623-bf89-3072f7a1431e",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"print(batches.shape)\"}"
+     "arguments": "{\"code\":\"# Unique batch count\\na1 = batches['batch_id'].nunique()\\nprint('Unique batches:', a1)\\n# Check humidity column\\nif 'humidity_pct' not in batches.columns:\\n    print('humidity column missing')\\nelse:\\n    # Count missing or invalid: assume NaN or \\u003c=0 or \\u003e100 maybe\\n    humidity = batches['humidity_pct']\\n    missing = humidity.isna().sum()\\n    invalid = ((humidity \\u003c= 0) | (humidity \\u003e 100)).sum()\\n    print('missing', missing, 'invalid', invalid)\\n    a2 = missing + invalid\\n    print('A2 count:', a2)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_01c5bd62-5f12-4788-80b5-634af037458f",
-  "content": "(3060, 18)\n"
+  "tool_call_id": "fc_dc582afb-fc97-4623-bf89-3072f7a1431e",
+  "content": "Unique batches: 3000\nmissing 56 invalid 177\nA2 count: 233\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_b837e46b-381d-4bc3-a20a-7978567a7f0d",
+    "id": "fc_49c7de61-f553-44f2-86eb-76b8ed57f3b0",
     "type": "function",
     "function": {
      "name": "run_python",
@@ -171,315 +171,254 @@
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_b837e46b-381d-4bc3-a20a-7978567a7f0d",
-  "content": "['batch_id', 'production_date', 'line', 'shift', 'operator_id', 'supplier_code', 'machine_age_years', 'ambient_temp_c', 'mold_temp', 'humidity_pct', 'cycle_time_s', 'units_produced', 'defective_units', 'qc_inspection_min', 'rework_cost_eur', 'humidity_pct_num', 'mold_temp_num', 'defect_rate']\n"
+  "tool_call_id": "fc_49c7de61-f553-44f2-86eb-76b8ed57f3b0",
+  "content": "['batch_id', 'production_date', 'line', 'shift', 'operator_id', 'supplier_code', 'machine_age_years', 'ambient_temp_c', 'mold_temp', 'humidity_pct', 'cycle_time_s', 'units_produced', 'defective_units', 'qc_inspection_min', 'rework_cost_eur', 'prod_date_parsed', 'prod_date']\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_ae2602e1-6a8e-41ca-9225-e8be4d2a6342",
+    "id": "fc_43db0876-2fcd-49e8-adae-c6de83f87b5e",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"# recompute line_dates as before but with defect_rate per batch (already computed) and aggregate daily mean per line.\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# drop rows where units_produced zero or NaN\\nvalid = batches['units_produced'].notna() \\u0026 (batches['units_produced']\\u003e0)\\nbatches_valid = batches[valid].copy()\\nbatches_valid['date'] = batches_valid['production_date'].dt.date\\nline_dates = batches_valid.groupby(['line','date'])['defect_rate'].mean().reset_index()\\n\\nshifts = {}\\nfor line, grp in line_dates.groupby('line'):\\n    # sort by date\\n    grp = grp.sort_values('date')\\n    dates = pd.to_datetime(grp['date'])\\n    rates = pd.Series(grp['defect_rate'].values, index=dates)\\n    # ensure continuous index for detection\\n    full = rates.reindex(pd.date_range(dates.min(), dates.max()))\\n    # look for split points where both sides have at least 30 days of non-NA\\n    for cut in full.index[30:-30]:\\n        before = full[:cut]\\n        after = full[cut:]\\n        if before.notna().sum() \\u003c 20 or after.notna().sum() \\u003c 20:\\n            continue\\n        mean_before = before.mean()\\n        mean_after = after.mean()\\n        if abs(mean_after-mean_before) \\u003e 0.02:  # 2%\\n            # check stability after: std of after low\\n            if after.std() \\u003c 0.03:\\n                shifts[line] = cut.date()\\n                break\\nprint(shifts)\\n\"}"
+     "arguments": "{\"code\":\"# compute defect_rate per batch\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# aggregate by line and date (prod_date)\\nagg = batches.groupby(['line','prod_date']).agg({'defect_rate':'mean','units_produced':'sum'}).reset_index()\\n# sort\\nagg = agg.sort_values(['line','prod_date'])\\n# compute rolling mean maybe 7 days\\nagg['rolling'] = agg.groupby('line')['defect_rate'].transform(lambda x: x.rolling(window=7, min_periods=1).mean())\\n# find large jumps: difference between successive days \\u003e 0.05\\nagg['diff'] = agg.groupby('line')['rolling'].diff().abs()\\n# find max diff per line\\nmaxdiff = agg.groupby('line')['diff'].max().reset_index()\\nprint(maxdiff)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_ae2602e1-6a8e-41ca-9225-e8be4d2a6342",
-  "content": "{}\n"
+  "tool_call_id": "fc_43db0876-2fcd-49e8-adae-c6de83f87b5e",
+  "content": "  line      diff\n0   L1  0.015243\n1   L4  0.023518\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_4d825f32-b1cf-419e-ad54-cc7783b39fdb",
+    "id": "fc_f80dbe09-cefa-4cfb-9372-65ac716f1dc1",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, numpy as np, statsmodels.api as sm\\nbatches = pd.read_csv('batches.csv')\\n# convert numeric columns\\nfor col in ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']:\\n    batches[col] = pd.to_numeric(batches[col], errors='coerce')\\n# defect_rate\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# drop rows with missing essential vars\\ncols_needed = ['defect_rate','mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\ndf = batches.dropna(subset=cols_needed)\\n# formula\\nimport patsy\\ny, X = patsy.dmatrices('defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)', data=df, return_type='dataframe')\\nmodel = sm.OLS(y, X).fit(cov_type='HC3')\\n# extract p-values for numeric vars\\npvals = model.pvalues\\nnumeric_vars = ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']\\nprint('p-values:')\\nfor var in numeric_vars:\\n    print(var, pvals[var])\\n# For operator_id and shift, they are categorical; we need to see if any levels significant? But direct effect definition: if changing operator while others fixed changes expected defect rate =\\u003e yes if operator appears in model with any significant coefficient.\\n# Let's check if any operator_id level p \\u003c 0.05\\noperator_ps = pvals.filter(like('C(operator_id)') )\\nshift_ps = pvals.filter(like('C(shift)') )\\nprint('operator significant any?', (operator_ps \\u003c 0.05).any())\\nprint('shift significant any?', (shift_ps \\u003c 0.05).any())\\n\"}"
+     "arguments": "{\"code\":\"# Overall defect rate\\ntotal_defective = batches['defective_units'].sum()\\ntotal_produced = batches['units_produced'].sum()\\na3 = total_defective / total_produced\\nprint('overall defect rate', a3)\\n# median mold temp where valid (non-null, numeric)\\nvalid_mold = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nvalid_mold = valid_mold.dropna()\\na4 = valid_mold.median()\\nprint('median mold temp', a4)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_4d825f32-b1cf-419e-ad54-cc7783b39fdb",
-  "content": "p-values:\nmold_temp 0.0001805929037777436\nhumidity_pct 0.6535723031485906\ncycle_time_s 1.518888139627397e-54\nmachine_age_years 0.47281246768285246\nambient_temp_c 5.183701902690503e-59\n\nNameError                                 Traceback (most recent call last)\nCell In[12], line 23\n     19 for var in numeric_vars:\n     20     print(var, pvals[var])\n     21 # For operator_id and shift, they are categorical; we need to see if any levels significant? But direct effect definition: if changing operator while others fixed changes expected defect rate => yes if operator appears in model with any significant coefficient.\n     22 # Let's check if any operator_id level p < 0.05\n---> 23 operator_ps = pvals.filter(like('C(operator_id)') )\n     24 shift_ps = pvals.filter(like('C(shift)') )\n     25 print('operator significant any?', (operator_ps < 0.05).any())\n     26 print('shift significant any?', (shift_ps < 0.05).any())\n\nNameError: name 'like' is not defined"
+  "tool_call_id": "fc_f80dbe09-cefa-4cfb-9372-65ac716f1dc1",
+  "content": "overall defect rate 0.055054575636677705\nmedian mold temp 216.1\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_8f35e892-6b4e-4ef0-bd2c-c80aa9acba61",
+    "id": "fc_aa0a4fb2-7fc2-4984-a291-72b8999dff4c",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"operator_ps = pvals[pvals.index.str.contains('C(operator_id)')]\\nshift_ps = pvals[pvals.index.str.contains('C(shift)')]\\nprint('operator significant any?', (operator_ps \\u003c 0.05).any())\\nprint('shift significant any?', (shift_ps \\u003c 0.05).any())\\n\"}"
+     "arguments": "{\"code\":\"print(suppliers.head())\\nprint(suppliers.columns)\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_8f35e892-6b4e-4ef0-bd2c-c80aa9acba61",
-  "content": "operator significant any? False\nshift significant any? False\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/3126601813.py:1: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.\n  operator_ps = pvals[pvals.index.str.contains('C(operator_id)')]\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/3126601813.py:2: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.\n  shift_ps = pvals[pvals.index.str.contains('C(shift)')]\n"
+  "tool_call_id": "fc_aa0a4fb2-7fc2-4984-a291-72b8999dff4c",
+  "content": "  supplier_code supplier_name resin_grade country pre_dried  \\\n0         SP-01         Alpha     PP-H350      DE        no   \n1         SP-02          Beta     PP-H350      PL       yes   \n2         SP-03         Gamma     PP-H420      CZ       yes   \n\n   recipe_cycle_time_s  \n0                   30  \n1                   30  \n2                   36  \nIndex(['supplier_code', 'supplier_name', 'resin_grade', 'country', 'pre_dried',\n       'recipe_cycle_time_s'],\n      dtype='str')\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_e5785b43-a080-4b0e-984d-262d5db3c450",
+    "id": "fc_445028ce-166b-4254-bc04-e6289576d579",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, numpy as np\\nbatches = pd.read_csv('batches.csv')\\n# A1 unique batches\\nA1 = batches['batch_id'].nunique()\\n# A2 missing humidity (invalid measurement)\\n# treat non-numeric or missing as invalid\\nbatches['humidity_num'] = pd.to_numeric(batches['humidity_pct'], errors='coerce')\\nA2 = batches['humidity_num'].isna().sum()\\n# A3 overall defect rate\\ndef_valid = batches['defective_units'].sum()\\nprod_valid = batches['units_produced'].sum()\\nA3 = def_valid / prod_valid\\n# A4 median mold temp numeric\\nbatches['mold_temp_num'] = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nA4 = batches['mold_temp_num'].median()\\nprint('A1', A1, 'A2', A2, 'A3', A3, 'A4', A4)\\n\"}"
+     "arguments": "{\"code\":\"a1 = batches['batch_id'].nunique()\\na1\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_e5785b43-a080-4b0e-984d-262d5db3c450",
-  "content": "A1 3000 A2 56 A3 0.055054575636677705 A4 216.1\n"
+  "tool_call_id": "fc_445028ce-166b-4254-bc04-e6289576d579",
+  "content": "3000\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_1d158586-6126-4d2b-84c7-f57b98daefa3",
+    "id": "fc_85653286-8335-4a5a-b613-7f8e887f0687",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"print(batches.columns.tolist())\"}"
+     "arguments": "{\"code\":\"batches['humidity_pct'].head(20)\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_1d158586-6126-4d2b-84c7-f57b98daefa3",
-  "content": "['batch_id', 'production_date', 'line', 'shift', 'operator_id', 'supplier_code', 'machine_age_years', 'ambient_temp_c', 'mold_temp', 'humidity_pct', 'cycle_time_s', 'units_produced', 'defective_units', 'qc_inspection_min', 'rework_cost_eur', 'humidity_num', 'mold_temp_num']\n"
+  "tool_call_id": "fc_85653286-8335-4a5a-b613-7f8e887f0687",
+  "content": "0     28.6\n1     27.6\n2     18.0\n3     46.7\n4     42.5\n5     25.9\n6     56.4\n7     57.0\n8     48.5\n9     14.3\n10    27.1\n11    30.1\n12    40.6\n13    36.9\n14    38.8\n15    43.1\n16    56.9\n17    33.6\n18    52.2\n19    45.7\nName: humidity_pct, dtype: float64\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_4bb4aced-3d42-4d4e-802b-dd3df7a8a950",
+    "id": "fc_c903bbf2-fc6e-4417-b23f-2f1b3f5154b7",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, statsmodels.api as sm, patsy\\nbatches = pd.read_csv('batches.csv')\\n# numeric conversion\\nfor col in ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']:\\n    batches[col] = pd.to_numeric(batches[col], errors='coerce')\\n# defect_rate\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# drop rows with missing essential\\ncols_needed = ['defect_rate','mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\ndf = batches.dropna(subset=cols_needed)\\n# formula\\ny, X = patsy.dmatrices('defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)', data=df, return_type='dataframe')\\nmodel = sm.OLS(y, X).fit(cov_type='HC3')\\nprint(model.pvalues[['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']])\\n# check significance of any operator or shift levels\\nop_sig = model.pvalues.filter(like('C(operator_id)')).lt(0.05).any()\\nsh_sig = model.pvalues.filter(like('C(shift)')).lt(0.05).any()\\nprint('operator any significant?', op_sig)\\nprint('shift any significant?', sh_sig)\\n\"}"
+     "arguments": "{\"code\":\"batches.info()\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_4bb4aced-3d42-4d4e-802b-dd3df7a8a950",
-  "content": "mold_temp            1.805929e-04\nhumidity_pct         6.535723e-01\ncycle_time_s         1.518888e-54\nmachine_age_years    4.728125e-01\nambient_temp_c       5.183702e-59\ndtype: float64\n\nNameError                                 Traceback (most recent call last)\nCell In[16], line 16\n     12 y, X = patsy.dmatrices('defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)', data=df, return_type='dataframe')\n     13 model = sm.OLS(y, X).fit(cov_type='HC3')\n     14 print(model.pvalues[['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']])\n     15 # check significance of any operator or shift levels\n---> 16 op_sig = model.pvalues.filter(like('C(operator_id)')).lt(0.05).any()\n     17 sh_sig = model.pvalues.filter(like('C(shift)')).lt(0.05).any()\n     18 print('operator any significant?', op_sig)\n     19 print('shift any significant?', sh_sig)\n\nNameError: name 'like' is not defined"
+  "tool_call_id": "fc_c903bbf2-fc6e-4417-b23f-2f1b3f5154b7",
+  "content": "<class 'pandas.DataFrame'>\nRangeIndex: 3060 entries, 0 to 3059\nData columns (total 18 columns):\n #   Column             Non-Null Count  Dtype         \n---  ------             --------------  -----         \n 0   batch_id           3060 non-null   str           \n 1   production_date    3060 non-null   str           \n 2   line               3060 non-null   str           \n 3   shift              3060 non-null   str           \n 4   operator_id        3060 non-null   str           \n 5   supplier_code      3060 non-null   str           \n 6   machine_age_years  3060 non-null   float64       \n 7   ambient_temp_c     3060 non-null   float64       \n 8   mold_temp          3060 non-null   float64       \n 9   humidity_pct       3004 non-null   float64       \n 10  cycle_time_s       3060 non-null   float64       \n 11  units_produced     3060 non-null   int64         \n 12  defective_units    3060 non-null   int64         \n 13  qc_inspection_min  3060 non-null   float64       \n 14  rework_cost_eur    3060 non-null   float64       \n 15  prod_date_parsed   956 non-null    datetime64[us]\n 16  prod_date          1495 non-null   datetime64[us]\n 17  defect_rate        3060 non-null   float64       \ndtypes: datetime64[us](2), float64(8), int64(2), str(6)\nmemory usage: 430.4 KB\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_45f8b562-7717-4268-9e63-6ed8f6b52438",
+    "id": "fc_214c9a25-cd1e-4cfc-bdc9-95e699e28177",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"op_sig = model.pvalues[model.pvalues.index.str.contains('C(operator_id)')].lt(0.05).any()\\nsh_sig = model.pvalues[model.pvalues.index.str.contains('C(shift)')].lt(0.05).any()\\nprint('operator any significant?', op_sig)\\nprint('shift any significant?', sh_sig)\\n\"}"
+     "arguments": "{\"code\":\"batches['batch_id'].nunique()\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_45f8b562-7717-4268-9e63-6ed8f6b52438",
-  "content": "operator any significant? False\nshift any significant? False\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/1254623874.py:1: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.\n  op_sig = model.pvalues[model.pvalues.index.str.contains('C(operator_id)')].lt(0.05).any()\n/var/folders/7h/28064gg93518rt30grsmrxk80000gn/T/ipykernel_64937/1254623874.py:2: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.\n  sh_sig = model.pvalues[model.pvalues.index.str.contains('C(shift)')].lt(0.05).any()\n"
+  "tool_call_id": "fc_214c9a25-cd1e-4cfc-bdc9-95e699e28177",
+  "content": "3000\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_b5967a19-f6bc-418f-b1eb-7f9c72cf0790",
+    "id": "fc_80bb60eb-4d29-442e-9e7b-91fc73f04915",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, numpy as np\\nbatches = pd.read_csv('batches.csv')\\n# compute correlation between rework_cost_eur and defective_units\\ncorr = batches[['rework_cost_eur','defective_units']].corr()\\nprint(corr)\\n\"}"
+     "arguments": "{\"code\":\"humidity = batches['humidity_pct']\\nmissing = humidity.isna().sum()\\ninvalid = ((humidity \\u003c= 0) | (humidity \\u003e 100)).sum()\\nmissing, invalid\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_b5967a19-f6bc-418f-b1eb-7f9c72cf0790",
-  "content": "                 rework_cost_eur  defective_units\nrework_cost_eur         1.000000         0.945109\ndefective_units         0.945109         1.000000\n"
+  "tool_call_id": "fc_80bb60eb-4d29-442e-9e7b-91fc73f04915",
+  "content": "(np.int64(56), np.int64(177))\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_0d71981e-82c6-4d57-8108-695bef86b38e",
+    "id": "fc_6b9b3850-5f0a-4f5c-bfb2-d0e310c0894e",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"batches.head().columns.tolist()\"}"
+     "arguments": "{\"code\":\"import numpy as np, pandas as pd\\ncorr = batches[['rework_cost_eur','defective_units','units_produced']].corr()\\nprint(corr)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_0d71981e-82c6-4d57-8108-695bef86b38e",
-  "content": "['batch_id',\n 'production_date',\n 'line',\n 'shift',\n 'operator_id',\n 'supplier_code',\n 'machine_age_years',\n 'ambient_temp_c',\n 'mold_temp',\n 'humidity_pct',\n 'cycle_time_s',\n 'units_produced',\n 'defective_units',\n 'qc_inspection_min',\n 'rework_cost_eur']\n"
+  "tool_call_id": "fc_6b9b3850-5f0a-4f5c-bfb2-d0e310c0894e",
+  "content": "                 rework_cost_eur  defective_units  units_produced\nrework_cost_eur         1.000000         0.945109        0.519214\ndefective_units         0.945109         1.000000        0.516145\nunits_produced          0.519214         0.516145        1.000000\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_a6c038e3-99a0-4cf6-a944-cdf4296aeb55",
+    "id": "fc_d967d303-73d5-42c0-aac1-17a2a860413d",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, numpy as np\\nbatches = pd.read_csv('batches.csv')\\nA1 = batches['batch_id'].nunique()\\n# humidity invalid as non-numeric or missing\\nbatches['humidity_num'] = pd.to_numeric(batches['humidity_pct'], errors='coerce')\\nA2 = batches['humidity_num'].isna().sum()\\nA3 = batches['defective_units'].sum() / batches['units_produced'].sum()\\n# mold temp median numeric\\nbatches['mold_temp_num'] = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nA4 = batches['mold_temp_num'].median()\\nprint(A1, A2, A3, A4)\\n\"}"
+     "arguments": "{\"code\":\"total_defective = batches['defective_units'].sum()\\ntotal_produced = batches['units_produced'].sum()\\na3 = total_defective/total_produced\\nprint(total_defective, total_produced, a3)\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_a6c038e3-99a0-4cf6-a944-cdf4296aeb55",
-  "content": "3000 56 0.055054575636677705 216.1\n"
+  "tool_call_id": "fc_d967d303-73d5-42c0-aac1-17a2a860413d",
+  "content": "96444 1751789 0.055054575636677705\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_50e015c1-df61-4158-82c2-7c3ed5bc77d5",
+    "id": "fc_868cf496-77ea-4a4e-8f41-b1a7e11be66d",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, statsmodels.api as sm, patsy\\nbatches = pd.read_csv('batches.csv')\\n# numeric conversion\\nfor col in ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']:\\n    batches[col] = pd.to_numeric(batches[col], errors='coerce')\\n# compute defect_rate\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# drop rows with missing essential vars\\ncols_needed = ['defect_rate','mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\ndf = batches.dropna(subset=cols_needed)\\n# formula\\nformula = 'defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)'\\ny, X = patsy.dmatrices(formula, data=df, return_type='dataframe')\\nmodel = sm.OLS(y, X).fit(cov_type='HC3')\\nprint(model.pvalues[['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']])\\n# significance for categorical\\nop_sig = model.pvalues.filter(like('C(operator_id)')).lt(0.05).any()\\nsh_sig = model.pvalues.filter(like('C(shift)')).lt(0.05).any()\\nprint('operator any sig', op_sig)\\nprint('shift any sig', sh_sig)\\n\"}"
+     "arguments": "{\"code\":\"list(batches.columns)\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_50e015c1-df61-4158-82c2-7c3ed5bc77d5",
-  "content": "mold_temp            1.805929e-04\nhumidity_pct         6.535723e-01\ncycle_time_s         1.518888e-54\nmachine_age_years    4.728125e-01\nambient_temp_c       5.183702e-59\ndtype: float64\n\nNameError                                 Traceback (most recent call last)\nCell In[21], line 17\n     13 y, X = patsy.dmatrices(formula, data=df, return_type='dataframe')\n     14 model = sm.OLS(y, X).fit(cov_type='HC3')\n     15 print(model.pvalues[['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']])\n     16 # significance for categorical\n---> 17 op_sig = model.pvalues.filter(like('C(operator_id)')).lt(0.05).any()\n     18 sh_sig = model.pvalues.filter(like('C(shift)')).lt(0.05).any()\n     19 print('operator any sig', op_sig)\n     20 print('shift any sig', sh_sig)\n\nNameError: name 'like' is not defined"
+  "tool_call_id": "fc_868cf496-77ea-4a4e-8f41-b1a7e11be66d",
+  "content": "['batch_id',\n 'production_date',\n 'line',\n 'shift',\n 'operator_id',\n 'supplier_code',\n 'machine_age_years',\n 'ambient_temp_c',\n 'mold_temp',\n 'humidity_pct',\n 'cycle_time_s',\n 'units_produced',\n 'defective_units',\n 'qc_inspection_min',\n 'rework_cost_eur',\n 'prod_date_parsed',\n 'prod_date',\n 'defect_rate']\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_283c7df1-eca6-4a76-8fb7-9f11c3b2a78e",
+    "id": "fc_495cbae1-16cb-4e52-a12d-8e47943b0423",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"op_sig = model.pvalues.filter(like='C(operator_id)').lt(0.05).any()\\nsh_sig = model.pvalues.filter(like='C(shift)').lt(0.05).any()\\nprint('operator any sig', op_sig)\\nprint('shift any sig', sh_sig)\\n\"}"
+     "arguments": "{\"code\":\"# Compute A1, A2, A3, A4 with proper handling\\nimport pandas as pd, numpy as np\\nbatches = pd.read_csv('batches.csv')\\n# parse dates robustly\\nbatches['prod_date'] = pd.to_datetime(batches['production_date'], errors='coerce')\\n# A1 unique batches\\nA1 = batches['batch_id'].nunique()\\n# A2 missing or invalid humidity\\nhumidity = pd.to_numeric(batches['humidity_pct'], errors='coerce')\\nA2_missing = humidity.isna().sum()\\nA2_invalid = ((humidity \\u003c= 0) | (humidity \\u003e 100)).sum()\\nA2 = A2_missing + A2_invalid\\n# A3 overall defect rate\\nA3 = batches['defective_units'].sum() / batches['units_produced'].sum()\\n# A4 median mold temp (valid numeric)\\nmold_temp = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nA4 = mold_temp.dropna().median()\\nprint('A1', A1)\\nprint('A2_missing', A2_missing, 'invalid', A2_invalid, 'total', A2)\\nprint('A3', A3)\\nprint('A4', A4)\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_283c7df1-eca6-4a76-8fb7-9f11c3b2a78e",
-  "content": "operator any sig True\nshift any sig True\n"
+  "tool_call_id": "fc_495cbae1-16cb-4e52-a12d-8e47943b0423",
+  "content": "A1 3000\nA2_missing 56 invalid 177 total 233\nA3 0.055054575636677705\nA4 216.1\n"
  },
  {
   "role": "assistant",
   "content": "",
   "tool_calls": [
    {
-    "id": "fc_1978a968-d796-4227-a375-b6a9fb48e0b8",
+    "id": "fc_3910f7df-f00c-4e1a-adfe-dfcae925b57d",
     "type": "function",
     "function": {
      "name": "run_python",
-     "arguments": "{\"code\":\"batches.columns.tolist()\"}"
+     "arguments": "{\"code\":\"import pandas as pd, numpy as np, statsmodels.api as sm, statsmodels.formula.api as smf\\nbatches = pd.read_csv('batches.csv')\\n# parse dates not needed\\n# Clean numeric columns\\nbatches['humidity_pct'] = pd.to_numeric(batches['humidity_pct'], errors='coerce')\\nbatches['mold_temp'] = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nbatches['cycle_time_s'] = pd.to_numeric(batches['cycle_time_s'], errors='coerce')\\nbatches['machine_age_years'] = pd.to_numeric(batches['machine_age_years'], errors='coerce')\\nbatches['ambient_temp_c'] = pd.to_numeric(batches['ambient_temp_c'], errors='coerce')\\n# drop rows with missing defect_rate components? We'll keep rows with non-missing defect_rate and predictor values.\\nbatches['defect_rate'] = batches['defective_units'] / batches['units_produced']\\n# filter rows with all needed predictors present\\ncols = ['defect_rate','mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\nmodel_df = batches[cols].dropna()\\nprint('rows used', model_df.shape)\\n# Fit weighted linear regression using units_produced as weight\\nweights = batches.loc[model_df.index, 'units_produced']\\n# Use formula\\nformula = 'defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)'\\nmodel = smf.wls(formula=formula, data=model_df, weights=weights).fit()\\nprint(model.summary().tables[1])\\n\"}"
     }
    }
   ]
  },
  {
   "role": "tool",
-  "tool_call_id": "fc_1978a968-d796-4227-a375-b6a9fb48e0b8",
-  "content": "['batch_id',\n 'production_date',\n 'line',\n 'shift',\n 'operator_id',\n 'supplier_code',\n 'machine_age_years',\n 'ambient_temp_c',\n 'mold_temp',\n 'humidity_pct',\n 'cycle_time_s',\n 'units_produced',\n 'defective_units',\n 'qc_inspection_min',\n 'rework_cost_eur',\n 'defect_rate']\n"
- },
- {
-  "role": "assistant",
-  "content": "",
-  "tool_calls": [
-   {
-    "id": "fc_03f1df2d-f76d-4c8b-a7ff-a2169f22777c",
-    "type": "function",
-    "function": {
-     "name": "run_python",
-     "arguments": "{\"code\":\"suppliers = pd.read_csv('suppliers.csv')\\nprint(suppliers.head())\\nprint(suppliers.columns.tolist())\\n\"}"
-    }
-   }
-  ]
- },
- {
-  "role": "tool",
-  "tool_call_id": "fc_03f1df2d-f76d-4c8b-a7ff-a2169f22777c",
-  "content": "  supplier_code supplier_name resin_grade country pre_dried  \\\n0         SP-01         Alpha     PP-H350      DE        no   \n1         SP-02          Beta     PP-H350      PL       yes   \n2         SP-03         Gamma     PP-H420      CZ       yes   \n\n   recipe_cycle_time_s  \n0                   30  \n1                   30  \n2                   36  \n['supplier_code', 'supplier_name', 'resin_grade', 'country', 'pre_dried', 'recipe_cycle_time_s']\n"
- },
- {
-  "role": "assistant",
-  "content": "",
-  "tool_calls": [
-   {
-    "id": "fc_7d957639-5cca-4362-b875-792bd6ee6c46",
-    "type": "function",
-    "function": {
-     "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, numpy as np\\nbatches = pd.read_csv('batches.csv')\\nA1 = batches['batch_id'].nunique()\\n# humidity invalid as non-numeric or missing\\nbatches['humidity_num'] = pd.to_numeric(batches['humidity_pct'], errors='coerce')\\nA2 = batches['humidity_num'].isna().sum()\\nA3 = batches['defective_units'].sum() / batches['units_produced'].sum()\\n# mold temp median numeric\\nbatches['mold_temp_num'] = pd.to_numeric(batches['mold_temp'], errors='coerce')\\nA4 = batches['mold_temp_num'].median()\\nprint('A1:', A1)\\nprint('A2:', A2)\\nprint('A3:', A3)\\nprint('A4:', A4)\\n\"}"
-    }
-   }
-  ]
- },
- {
-  "role": "tool",
-  "tool_call_id": "fc_7d957639-5cca-4362-b875-792bd6ee6c46",
-  "content": "A1: 3000\nA2: 56\nA3: 0.055054575636677705\nA4: 216.1\n"
- },
- {
-  "role": "assistant",
-  "content": "",
-  "tool_calls": [
-   {
-    "id": "fc_e0944041-a282-4b7c-80b4-453b41c74ace",
-    "type": "function",
-    "function": {
-     "name": "run_python",
-     "arguments": "{\"code\":\"import pandas as pd, statsmodels.api as sm, patsy\\nbatches = pd.read_csv('batches.csv')\\nfor col in ['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']:\\n    batches[col] = pd.to_numeric(batches[col], errors='coerce')\\n# defect_rate\\ndef compute_defect_rate(row):\\n    if row['units_produced']\\u003e0:\\n        return row['defective_units']/row['units_produced']\\n    else:\\n        return None\\nbatches['defect_rate'] = batches.apply(lambda r: compute_defect_rate(r), axis=1)\\ncols_needed = ['defect_rate','mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c','operator_id','shift']\\ndf = batches.dropna(subset=cols_needed)\\nformula = 'defect_rate ~ mold_temp + humidity_pct + cycle_time_s + machine_age_years + ambient_temp_c + C(operator_id) + C(shift)'\\ny, X = patsy.dmatrices(formula, data=df, return_type='dataframe')\\nmodel = sm.OLS(y, X).fit(cov_type='HC3')\\nprint(model.pvalues[['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']])\\n# show few categorical p-values\\nprint('operator coefficients p-values (first 5):')\\nprint(model.pvalues.filter(like('C(operator_id)')).head())\\nprint('shift coefficients p-values (first 5):')\\nprint(model.pvalues.filter(like('C(shift)')).head())\\n\"}"
-    }
-   }
-  ]
- },
- {
-  "role": "tool",
-  "tool_call_id": "fc_e0944041-a282-4b7c-80b4-453b41c74ace",
-  "content": "mold_temp            1.805929e-04\nhumidity_pct         6.535723e-01\ncycle_time_s         1.518888e-54\nmachine_age_years    4.728125e-01\nambient_temp_c       5.183702e-59\ndtype: float64\noperator coefficients p-values (first 5):\n\nNameError                                 Traceback (most recent call last)\nCell In[26], line 20\n     16 model = sm.OLS(y, X).fit(cov_type='HC3')\n     17 print(model.pvalues[['mold_temp','humidity_pct','cycle_time_s','machine_age_years','ambient_temp_c']])\n     18 # show few categorical p-values\n     19 print('operator coefficients p-values (first 5):')\n---> 20 print(model.pvalues.filter(like('C(operator_id)')).head())\n     21 print('shift coefficients p-values (first 5):')\n     22 print(model.pvalues.filter(like('C(shift)')).head())\n\nNameError: name 'like' is not defined"
- },
- {
-  "role": "user",
-  "content": "You have reached the limit of tool calls for this task. Reply now with your final answer in the required format, based on what you have found so far."
+  "tool_call_id": "fc_3910f7df-f00c-4e1a-adfe-dfcae925b57d",
+  "content": "rows used (3004, 8)\n===========================================================================================\n                              coef    std err          t      P>|t|      [0.025      0.975]\n-------------------------------------------------------------------------------------------\nIntercept                   0.0357      0.008      4.733      0.000       0.021       0.050\nC(operator_id)[T.OP-02]     0.0067      0.003      1.951      0.051   -3.35e-05       0.014\nC(operator_id)[T.OP-03]     0.0039      0.003      1.119      0.263      -0.003       0.011\nC(operator_id)[T.OP-04]     0.0038      0.004      1.089      0.276      -0.003       0.011\nC(operator_id)[T.OP-05]     0.0030      0.003      0.882      0.378      -0.004       \n...\n1       0.011\nC(shift)[T.day]             0.0016      0.005      0.310      0.757      -0.008       0.012\nC(shift)[T.night]           0.0107      0.005      1.973      0.049    6.77e-05       0.021\nmold_temp                 5.06e-05   1.69e-05      2.993      0.003    1.75e-05    8.37e-05\nhumidity_pct                0.0001   3.93e-05      3.088      0.002    4.43e-05       0.000\ncycle_time_s               -0.0019      0.000    -15.618      0.000      -0.002      -0.002\nmachine_age_years          -0.0001      0.000     -0.352      0.725      -0.001       0.001\nambient_temp_c              0.0022      0.000     17.098      0.000       0.002       0.002\n===========================================================================================\n\n[output truncated: print less, e.g. head() or aggregates]"
  }
 ]
