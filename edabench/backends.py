@@ -55,6 +55,15 @@ FINAL_ANSWER_NUDGE = (
     "You have reached the limit of tool calls for this task. Reply now with your final "
     "answer in the required format, based on what you have found so far."
 )
+TEXT_ONLY_NUDGE = "Tools are no longer available. Do not call any tool: reply with text only."
+# Extra requests for the final answer when a model still tries to call a tool after the
+# nudge. Some providers (Groq) reject such a reply with a 400 instead of returning it.
+FINAL_ANSWER_RETRIES = 2
+
+
+def _is_forbidden_tool_call(error: Exception) -> bool:
+    text = str(error)
+    return "tool_use_failed" in text or "Tool choice is none" in text
 
 
 @dataclass
@@ -98,9 +107,9 @@ def run_openai_compatible(spec: ModelSpec, prompt: str, files: list[Path], tempe
     messages: list[dict] = [{"role": "user", "content": prompt + API_NOTE}]
     usage = {"prompt_tokens": 0, "completion_tokens": 0}
     with PythonSandbox(files, max_output_chars=spec.max_output_chars) as sandbox:
-        for call in range(spec.max_turns + 1):
-            last = call == spec.max_turns
-            if last:
+        for call in range(spec.max_turns + 1 + FINAL_ANSWER_RETRIES):
+            last = call >= spec.max_turns
+            if call == spec.max_turns:
                 messages.append({"role": "user", "content": FINAL_ANSWER_NUDGE})
                 result.hit_turn_limit = True
             if call and spec.min_interval_s:
@@ -113,6 +122,12 @@ def run_openai_compatible(spec: ModelSpec, prompt: str, files: list[Path], tempe
                     **({} if last else {"tools": [RUN_PYTHON_TOOL], "tool_choice": "auto"}),
                 )
             except Exception as e:  # provider errors end the run; the log keeps the reason
+                if last and _is_forbidden_tool_call(e):
+                    # The model's own failure to answer, not the provider's: the run is
+                    # scored (no answer) unless a retry gets the text.
+                    result.n_model_calls += 1
+                    messages.append({"role": "user", "content": TEXT_ONLY_NUDGE})
+                    continue
                 result.error = f"{type(e).__name__}: {e}"
                 break
             result.n_model_calls += 1

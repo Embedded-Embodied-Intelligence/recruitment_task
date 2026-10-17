@@ -243,3 +243,16 @@ def test_provider_fields_of_tool_calls_are_sent_back():
     run_openai_compatible(api_spec(), "PROMPT", [], 0.0, client=client)
     echoed = client.calls[1]["messages"][1]["tool_calls"][0]
     assert echoed["extra_content"] == {"google": {"thought_signature": "SIG"}}
+
+
+def test_tool_call_after_the_final_nudge_is_retried_not_an_infrastructure_error():
+    """Groq answers a tool call made without tools with a 400 (tool_use_failed)."""
+    refused = RuntimeError("Error code: 400 - Tool choice is none, but model called a tool (tool_use_failed)")
+    client = ScriptedClient([_response(tool_calls=[_tool_call(1, "print(1)")]), refused,
+                             _response(content="final")])
+    r = run_openai_compatible(api_spec(max_turns=1), "task", FILES, 1.0, client=client)
+    assert (r.text, r.error, r.hit_turn_limit) == ("final", None, True)
+    assert "tools" not in client.calls[-1]
+    stuck = ScriptedClient([_response(tool_calls=[_tool_call(1, "print(1)")]), refused, refused, refused])
+    r = run_openai_compatible(api_spec(max_turns=1), "task", FILES, 1.0, client=stuck)
+    assert (r.text, r.error) == ("", None)        # scored as no answer, not skipped
