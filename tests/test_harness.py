@@ -194,7 +194,7 @@ def test_runner_scores_resumes_and_reports(tmp_path):
         return RunResult(text=perfect_answer(truth), n_tool_calls=3, duration_s=1.0)
 
     root = runner.run_benchmark(cfg, [good, broken], ["full", "no_quality_hint"], 2, tmp_path, fake_backend, log=lambda *_: None)
-    assert root.name == "v3_seed42"
+    assert root.name == "v4_seed42"
     assert not any("ground_truth" in f.name for f in (root / "_data").iterdir())
     assert calls == [("fake", True), ("fake", True), ("fake", False), ("fake", False), ("broken", True)]
     score = json.loads((root / "fake" / "full" / "run_01" / "score.json").read_text())

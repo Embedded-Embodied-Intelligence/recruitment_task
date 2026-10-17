@@ -112,6 +112,8 @@ def _trap_hit(spec: dict, answer) -> bool | None:
         return abs(answer - spec["naive"]) < abs(answer - spec["truth"])
     if spec["type"] == "category":
         return category_score(answer, spec["naive"]) == 1.0
+    if spec["type"] == "regime":  # the decoy line (v4: a change in QC, not in production)
+        return spec["naive"] is not None and answer["line"].upper() == spec["naive"]["line"].upper()
     return None
 
 

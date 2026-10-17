@@ -21,7 +21,7 @@ make install       # includes the harness extra (openai, jupyter_client, ipykern
 make test          # generator reproducibility, trap injection, planted effects detectable
 make data          # data/batches.csv, suppliers.csv, maintenance.csv + eval/ground_truth.json
 make data-notraps  # ablation variant without traps
-make reference     # re-run the expert notebook (scores 0.996)
+make reference     # re-run the expert notebook (scores 0.989 on v4)
 python -m edabench.scorer reference/reference_answer.json   # score any response
 ```
 
@@ -33,5 +33,5 @@ python -m edabench.scorer reference/reference_answer.json   # score any response
 ```bash
 python -m edabench.runner --check claude-haiku     # verify isolation first
 python -m edabench.runner --model claude-haiku claude-sonnet --variant full no_quality_hint --runs 5
-python -m edabench.report outputs/runs/v3_seed42
+python -m edabench.report outputs/runs/v4_seed42   # v3 results: outputs/runs/v3_seed42
 ```

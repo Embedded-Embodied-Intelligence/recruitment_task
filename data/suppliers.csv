@@ -1,4 +1,4 @@
-supplier_code,supplier_name,resin_grade,country,pre_dried
-SP-01,Alpha,PP-H350,DE,no
-SP-02,Beta,PP-H350,PL,yes
-SP-03,Gamma,PP-H420,CZ,yes
+supplier_code,supplier_name,resin_grade,country,pre_dried,recipe_cycle_time_s
+SP-01,Alpha,PP-H350,DE,no,30
+SP-02,Beta,PP-H350,PL,yes,30
+SP-03,Gamma,PP-H420,CZ,yes,36

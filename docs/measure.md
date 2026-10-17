@@ -71,7 +71,7 @@ There are three suppliers, and the question has one correct answer. Partial cred
 
 ### Counterfactuals (C1, C3): truth from the DGP
 
-C1 and C3 ask what *would* have happened. The key computes this from the data generating process itself: every batch keeps its own conditions and its random batch effect, and only the supplier (C1) or the days since cleaning (C3) change. The answer is therefore exact, not an estimate by our own model. C3 is reported as a rate: the observed A3 rate times the ratio of expected defects with and without the extra cleanings. The reference solution estimates the same ratio from a fitted model and lands within 0.2 of the zero-point scale on every tested seed.
+C1 and C3 ask what *would* have happened. The key computes this from the data generating process itself: every batch keeps its own conditions and its random batch effect, and only the supplier (C1) or the days since cleaning (C3) change. From v4, a switched batch also takes the cycle time of its new grade's recipe plus its own operator adjustment (T14), and the expected defects are the *recorded* ones (T17), as A3 defines the rate. The answer is therefore exact, not an estimate by our own model. C3 is reported as a rate: the observed A3 rate times the ratio of expected defects with and without the extra cleanings. The reference solution estimates the same ratio from a fitted model and lands within 0.2 of the zero-point scale on every tested seed.
 
 ### Regime change (B3): gated date distance
 
@@ -81,6 +81,8 @@ s = [line correct] · max(0, 1 - |days off| / 30)          null vs null = 1
 
 The line is a gate: a correct date on the wrong line is a wrong finding. Within the right line, being a week off still earns 0.77, because detecting the shift matters more than pinpointing the exact day.
 
+From v4 the key also stores a **decoy** for B3: the L3 QC change (T17), where recorded defects fall but production does not change. An answer on the decoy's line counts as a trap hit in the report (`trap_B3`), and scores 0 like any wrong line.
+
 ## 4. Properties guaranteed by tests
 
 | Property | Test |
@@ -88,7 +90,7 @@ The line is a gate: a correct date on the wrong line is a wrong finding. Within 
 | Correct answer → 1.0, empty or no answer → 0.0 | `test_correct_answer_scores_one`, `test_no_answer_scores_zero` |
 | Every trap answer scores 0 on its question | `test_trap_answers_score_zero_on_their_questions` |
 | A partial answer scores strictly between 0 and 1 | `test_partial_answer_is_strictly_between` |
-| Expert reference solution ≈ 1 (0.996) | `test_reference_solution_scores_near_one` |
+| Expert reference solution ≈ 1 (0.989 on v4) | `test_reference_solution_scores_near_one` |
 | Older keys keep their own weights (pilot 01 still scores 0.995 on v2) | `test_older_keys_keep_their_own_weights` |
 | Bounded, monotone in the error, symmetric | `test_number_score_bounded_monotone_symmetric` |
 | Avoiding one more trap never lowers the score | `test_more_traps_avoided_never_scores_lower` |

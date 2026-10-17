@@ -40,7 +40,7 @@ plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.r
                      "axes.grid": True, "axes.axisbelow": True, "grid.color": "#e6e5e0", "grid.linewidth": 0.6})
 pd.set_option("display.width", 140)
 
-raw = pd.read_csv(DATA / "batches.csv")
+raw = pd.read_csv(DATA / "batches.csv", dtype={"production_date": str})
 suppliers = pd.read_csv(DATA / "suppliers.csv")
 maintenance = pd.read_csv(DATA / "maintenance.csv", parse_dates=["date"])
 print(raw.shape, suppliers.shape, maintenance.shape)
@@ -56,14 +56,34 @@ raw.head()"""),
     ("code", """for col in ["line", "shift", "supplier_code"]:
     print(col, raw[col].map(repr).value_counts().to_dict(), "\\n")"""),
     ("md", "`shift` has spelling variants of two values (`Day`, `day`, `D`, `' Day'`, ...), and `supplier_code` has case and whitespace variants of the three codes in `suppliers.csv`. A join on the raw key would silently drop rows."),
-    ("md", "### 1.3 Duplicates"),
+    ("md", "### 1.3 Dates: one format per line"),
+    ("code", """print(raw.groupby("line")["production_date"].agg(["first", "last"]))
+try:
+    pd.to_datetime(raw["production_date"])
+except ValueError as e:
+    print("\\nplain to_datetime fails:", str(e).splitlines()[0])"""),
+    ("md", """The lines do not share one date format: L2 and L3 write ISO dates, L1 writes `04/14/2025` and L4 writes `14/04/2025`. A global fallback is wrong either way: `format="mixed"` reads L4's `06/01/2025` as 1 June instead of 6 January, and `dayfirst=True` even misreads the ISO dates. Each line's export is internally consistent, so the right parser is the one format that parses **every** date of that line."""),
+    ("code", """FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y")
+
+def parse_dates(raw: pd.DataFrame) -> pd.Series:
+    parts = []
+    for line, s in raw.groupby("line")["production_date"]:
+        fits = [f for f in FORMATS if pd.to_datetime(s, format=f, errors="coerce").notna().all()]
+        assert len(fits) == 1, (line, fits)
+        print(line, "->", fits[0])
+        parts.append(pd.to_datetime(s, format=fits[0]))
+    return pd.concat(parts).reindex(raw.index)
+
+dates = parse_dates(raw)
+print("range:", dates.min().date(), "to", dates.max().date())"""),
+    ("md", "### 1.4 Duplicates"),
     ("code", """print("exact duplicate rows:", raw.duplicated().sum())
 print("repeated batch_id:   ", raw["batch_id"].duplicated().sum())
 dup_ids = raw.loc[raw["batch_id"].duplicated(), "batch_id"]
 print("rows sharing a repeated id that are NOT exact copies:",
       (raw[raw["batch_id"].isin(dup_ids)].drop_duplicates()["batch_id"].duplicated()).sum())"""),
     ("md", "Every repeated `batch_id` is an exact copy of another row (a double export), so dropping exact duplicates is safe and loses no information."),
-    ("md", "### 1.4 Mold temperature units"),
+    ("md", "### 1.5 Mold temperature units"),
     ("code", """valid = raw[raw["mold_temp"] > 0]
 print(valid.groupby("line")["mold_temp"].describe().round(1))
 print("\\nzeros per line:", raw[raw["mold_temp"] == 0].groupby("line").size().to_dict())"""),
@@ -76,32 +96,58 @@ ax.set_xlabel("mold_temp as logged")
 ax.set_title("Line L3 logs on a different scale", loc="left", fontsize=10)
 plt.tight_layout()"""),
     ("md", """L3 sits around 410 while the other lines sit around 210. (410 - 32) × 5/9 ≈ 210, so **L3 logs in °F**. The zeros appear on every line and are sensor failures, not cold molds."""),
-    ("md", "### 1.5 The other two files"),
+    ("md", "### 1.6 The other two files"),
     ("code", """print(suppliers.to_string(index=False), "\\n")
 print(maintenance["event"].value_counts().to_string(), "\\n")
 maintenance[maintenance["event"] != "mold_cleaning"]"""),
-    ("md", """Two facts that the batch table alone does not show:
+    ("md", """Three facts that the batch table alone does not show:
 
 - **Alpha resin is not pre-dried** (`pre_dried = no`). Undried resin absorbs moisture, so its response to hall humidity may differ from the other two. Section 3.2 tests this.
-- **L1's mold temperature sensor was replaced on 2025-04-14**, and a later calibration check found that it **reads 8.0 °C high**. Readings from the new sensor are biased, not invalid. The check below confirms the bias in the data before correcting it."""),
-    ("code", """mt = raw[raw["mold_temp"] > 0].assign(month=lambda d: pd.to_datetime(d["production_date"]).dt.to_period("M"))
+- **Each resin grade has its own process recipe**: PP-H420 (Gamma) runs a 36 s cycle, PP-H350 a 30 s cycle. So the cycle time of a batch depends on its supplier. Section 3.1 needs this.
+- **L1's mold temperature sensor was replaced on 2025-04-14.** The log does not say whether the new sensor reads correctly, so the data have to tell."""),
+    ("code", """mt = raw[raw["mold_temp"] > 0].assign(date=dates[raw["mold_temp"] > 0])
 mt.loc[mt["line"] == "L3", "mold_temp"] = (mt.loc[mt["line"] == "L3", "mold_temp"] - 32) * 5 / 9
-monthly = mt.groupby(["month", "line"])["mold_temp"].mean().unstack()
-gap = monthly["L1"] - monthly.drop(columns="L1").mean(axis=1)
-fig, ax = plt.subplots(figsize=(7, 2.8))
-ax.plot(gap.index.to_timestamp(), gap.values, color=ORANGE, lw=2, marker="o", ms=5)
+weekly_t = mt.groupby([pd.Grouper(key="date", freq="W"), "line"])["mold_temp"].mean().unstack()
+gap = weekly_t.sub(weekly_t.mean(axis=1), axis=0)   # each line against the plant mean (removes season)
+fig, ax = plt.subplots(figsize=(8, 3))
+for line, c in zip(gap, [ORANGE, GRAY, AQUA, BLUE]):
+    ax.plot(gap.index, gap[line], color=c, lw=1.6, label=line)
 ax.axvline(pd.Timestamp("2025-04-14"), color=GRAY, lw=1, ls="--")
-ax.set_ylabel("L1 minus other lines, °C")
-ax.set_title("L1 mold temperature jumps by ~8 °C when its sensor is replaced", loc="left", fontsize=10)
-plt.tight_layout()
-print("gap before:", round(gap[:"2025-03"].mean(), 1), "°C | after:", round(gap["2025-05":].mean(), 1), "°C")"""),
-    ("md", """The jump is a step of about 8 °C on L1 only, at the replacement date, while the hall temperature does not move that way. L1's defect rate does not follow the step either (section 2.4 would otherwise show it as a process effect). So the correction is: **subtract 8.0 °C from L1 readings from 2025-04-14 on.**"""),
+ax.legend(ncol=4, frameon=False, fontsize=8); ax.set_ylabel("line minus plant mean, °C")
+ax.set_title("Two lines step up: L1 in April, L3 in May", loc="left", fontsize=10)
+plt.tight_layout()"""),
+    ("md", """Two lines step up, L1 at the sensor replacement and L3 in the second half of May, with no log entry. A step in a reading is either a biased sensor or a real change of the process, and the defects tell them apart: a hotter mold makes more defects (mold temperature is a strong driver, section 2.4), a biased sensor does not. The check measures, for each step, the jump of the reading and of the defect logit against L4, which has no step (L2 has its own regime change in June, section 2.3)."""),
+    ("code", """def step(line, since, until="2026-01-01"):
+    \"\"\"Difference in differences of the reading (against L2 and L4, adjusted for the hall
+    temperature) and of the defect logit (against L4, since L2 has its own regime change).\"\"\"
+    d = mt.assign(defects=raw["defective_units"], n=raw["units_produced"]).drop_duplicates("batch_id")
+    d = d[d["date"] < until]
+    r = d[d["line"].isin([line, "L2", "L4"])]
+    on, post = r["line"] == line, (r["line"] == line) & (r["date"] >= since)
+    X = np.column_stack([np.ones(len(r)), on, r["ambient_temp_c"], post])
+    reading = np.linalg.lstsq(X, r["mold_temp"].to_numpy(), rcond=None)[0][-1]
+    q = d[d["line"].isin([line, "L4"])]
+    on, after = q["line"] == line, q["date"] >= since
+    lg = lambda g: np.log(g["defects"].sum() / (g["n"].sum() - g["defects"].sum()))
+    logit = (lg(q[on & after]) - lg(q[on & ~after])) - (lg(q[~on & after]) - lg(q[~on & ~after]))
+    return pd.Series({"reading jump °C": reading, "defect-logit jump": logit,
+                      "jump if real (0.03/°C)": 0.03 * reading}).round(2)
+
+l3_start = (gap["L3"].diff().idxmax() - pd.Timedelta(days=6)).date()   # weekly labels mark the week's end
+steps = pd.DataFrame({"L1 from 2025-04-14": step("L1", "2025-04-14"),
+                      f"L3 from {l3_start}": step("L3", str(l3_start), until="2025-07-21")})
+print(steps.to_string())
+SENSOR_OFFSET = steps.iloc[0, 0]"""),
+    ("md", """The last row uses the effect of mold temperature on the defect logit, about 0.03 per °C (the `mold_temp` slope of the binomial model in section 2.3).
+
+- **L1**: the reading jumps by 7-8 °C, which would add about 0.2 to the logit if it were real, but the defects do not rise. **The new sensor reads high**, so the measured offset is subtracted from L1 readings from 2025-04-14 on.
+- **L3**: the reading jumps by about 6 °C and the defect logit rises by about 0.1, the same order as the 0.18 a real 6 °C rise predicts and far from L1's zero. **L3 really runs warmer** (a setpoint change), so its readings stay as they are. (The comparison stops on 2025-07-21 because of the L3 QC change found in section 2.1.)"""),
     ("md", """**Cleaning intervals.** The log also records when each line's molds were cleaned. The interval between cleanings is a candidate driver that is not a column of `batches.csv`."""),
     ("code", """cl = maintenance[maintenance["event"] == "mold_cleaning"].sort_values(["line", "date"]).copy()
 cl["interval_days"] = cl.groupby("line")["date"].diff().dt.days
 cl.groupby(cl["date"].dt.month)["interval_days"].mean().round(1).to_frame("mean interval, days").T"""),
     ("md", """Cleanings normally happen every 10-16 days, but in July and August the interval roughly doubles (holidays), and the long gaps reach into early September. For each batch, **days since its line's last cleaning** comes from a backward as-of join: the last cleaning on or before the production date, because cleanings happen before the first shift."""),
-    ("md", "### 1.6 Cleaning"),
+    ("md", "### 1.7 Cleaning"),
     ("code", """def clean(raw: pd.DataFrame, suppliers: pd.DataFrame, maintenance: pd.DataFrame) -> pd.DataFrame:
     df = raw.drop_duplicates().copy()
     df["shift"] = df["shift"].str.strip().str[0].str.upper().map({"D": "Day", "N": "Night"})
@@ -111,9 +157,9 @@ cl.groupby(cl["date"].dt.month)["interval_days"].mean().round(1).to_frame("mean 
     df["mold_temp"] = df["mold_temp"].where(df["mold_temp"] > 0)             # 0 -> NaN
     is_f = df["line"] == "L3"
     df.loc[is_f, "mold_temp"] = (df.loc[is_f, "mold_temp"] - 32) * 5 / 9   # degF -> degC
-    df["production_date"] = pd.to_datetime(df["production_date"])
+    df["production_date"] = parse_dates(df)                                   # one format per line
     drift = (df["line"] == "L1") & (df["production_date"] >= "2025-04-14")
-    df.loc[drift, "mold_temp"] -= 8.0                                         # biased L1 sensor
+    df.loc[drift, "mold_temp"] -= round(SENSOR_OFFSET, 1)                     # biased L1 sensor
     cleanings = (maintenance.loc[maintenance["event"] == "mold_cleaning", ["line", "date"]]
                  .rename(columns={"date": "cleaned_on"}).sort_values("cleaned_on"))
     df = pd.merge_asof(df.sort_values("production_date"), cleanings, left_on="production_date",
@@ -128,7 +174,7 @@ assert df["shift"].notna().all() and df["supplier_name"].notna().all()
 assert df.groupby("line")["mold_temp"].median().between(195, 225).all()
 print(df.shape)
 df[["shift", "supplier_name"]].value_counts().unstack()"""),
-    ("md", "### 1.7 Answers A1-A4"),
+    ("md", "### 1.8 Answers A1-A4"),
     ("code", """answers = {}
 answers["A1_unique_batches"] = int(df["batch_id"].nunique())
 answers["A2_missing_humidity_batches"] = int(df["humidity_pct"].isna().sum())
@@ -139,7 +185,7 @@ print("mean of batch rates (not the overall rate):", round(df["rate"].mean(), 5)
 print("missing humidity, NaN only (sentinels ignored):", raw.drop_duplicates()["humidity_pct"].isna().sum())
 print("median mold temperature without the L1 sensor correction:",
       round(float(df["mold_temp"].where(~((df["line"] == "L1") & (df["production_date"] >= "2025-04-14")),
-                                        df["mold_temp"] + 8.0).median()), 2))
+                                        df["mold_temp"] + round(SENSOR_OFFSET, 1)).median()), 2))
 answers"""),
     ("md", """The overall defect rate is the share of *all produced units* that were defective, so it is a pooled ratio. The mean of batch rates differs because the worst line also makes the smallest batches, which gives each of its few units too much weight."""),
     ("md", "## 2. Identify salient features\n\n### 2.1 Leakage: columns determined by the outcome"),
@@ -149,7 +195,25 @@ num.corrwith(df["defective_units"]).sort_values(ascending=False).round(3).to_fra
 print("rework cost per defective part: median", round(ratio.median(), 2), "IQR", ratio.quantile([.25, .75]).round(2).tolist())
 slope = np.polyfit(df["defective_units"], df["qc_inspection_min"], 1)
 print(f"qc minutes = {slope[1]:.1f} + {slope[0]:.3f} x defective_units")"""),
-    ("md", """`rework_cost_eur` is almost exactly 4.2 € per defective part, and `qc_inspection_min` grows with the number of defects found. Both are **recorded after quality control and computed from the outcome**. They are excellent "predictors" only because they encode Y, so they must be excluded from any driver analysis (B2)."""),
+    ("md", """`rework_cost_eur` is about 4.2 € per defective part, and `qc_inspection_min` grows with the number of defects found. Both are **recorded after quality control and computed from the outcome**. They are excellent "predictors" only because they encode Y, so they must be excluded from any driver analysis (B2).
+
+They are still useful as an **audit trail of the outcome**. Rework is booked for every defective part that gets reworked, so the cost per *recorded* defect should be stable. It is not:"""),
+    ("code", """audit = df[df["defective_units"] > 0].assign(cost_per_defect=ratio)
+wk = audit.groupby([pd.Grouper(key="production_date", freq="W"), "line"]).agg(
+    cost=("cost_per_defect", "median"), qc=("qc_inspection_min", "mean")).unstack()
+fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+for line, c in zip(wk["cost"], [GRAY, GRAY, ORANGE, BLUE]):
+    axes[0].plot(wk.index, wk["cost"][line], color=c, lw=1.6, label=line)
+    axes[1].plot(wk.index, wk["qc"][line], color=c, lw=1.6)
+axes[0].set_title("Rework € per recorded defect", loc="left", fontsize=10); axes[0].legend(ncol=4, frameon=False, fontsize=8)
+axes[1].set_title("QC minutes per batch", loc="left", fontsize=10)
+plt.tight_layout()
+
+l3 = audit[audit["line"] == "L3"].set_index("production_date")["cost_per_defect"]
+qc_date = max(l3.index.unique()[20:-20], key=lambda d: l3[l3.index >= d].mean() - l3[l3.index < d].mean())
+print("L3 change:", qc_date.date())"""),
+    ("md", """From late July, **L3 books about twice the rework per recorded defect and spends about 8 minutes less on QC per batch**. The parts are as bad as before (rework still has to fix them), but QC records fewer of them: L3 switched to a quicker inspection that misses about half of the defective parts. The fall in L3's recorded defect rate from that date is a change in measurement, not in production. Every model below gets an indicator `qc_change` for it, and B3 must not report it as a change of the process."""),
+    ("code", """df["qc_change"] = ((df["line"] == "L3") & (df["production_date"] >= qc_date)).astype(int)"""),
     ("md", "### 2.2 Univariate view: what a correlation matrix would suggest"),
     ("code", """cands = ["mold_temp", "humidity_pct", "cycle_time_s", "machine_age_years", "ambient_temp_c", "days_since_cleaning"]
 df[cands].corrwith(df["rate"]).round(3).to_frame("Pearson r with defect rate")"""),
@@ -177,7 +241,7 @@ plt.tight_layout()"""),
     ("md", """All lines drift up in summer (hotter hall, hotter molds, and longer gaps between mold cleanings), so a changepoint search on raw rates would be confounded by season. The search below therefore runs on **observed / expected** defects, where *expected* comes from a model of the process variables, including days since cleaning, without any time term. For each line it finds the single split date that maximizes the Poisson log-likelihood ratio."""),
     ("code", """HUMIDITY = "C(supplier_name):humidity_pct + C(supplier_name):I(humidity_pct**2)"
 base_formula = (f"rate ~ C(line) + C(supplier_name) + C(shift) + mold_temp + {HUMIDITY}"
-                " + cycle_time_s + days_since_cleaning")
+                " + cycle_time_s + days_since_cleaning + qc_change")
 model_df = df.dropna(subset=["mold_temp", "humidity_pct"]).copy()
 base = smf.glm(base_formula, model_df, family=sm.families.Binomial(),
                var_weights=model_df["units_produced"]).fit(scale="X2")
@@ -197,7 +261,11 @@ def best_split(g: pd.DataFrame, margin_days: int = 14):
 splits = pd.DataFrame([(l, *best_split(g)) for l, g in model_df.groupby("line")],
                       columns=["line", "split_date", "LLR", "O/E before", "O/E after"]).set_index("line")
 splits.round(3)"""),
-    ("md", """Only L2 shows a large likelihood ratio: its observed/expected defect ratio jumps by a large factor at one date. The other lines' best splits are noise of much smaller magnitude."""),
+    ("md", """Only L2 shows a large likelihood ratio: its observed/expected defect ratio jumps by a large factor at one date. The other lines' best splits are noise of much smaller magnitude. Without the `qc_change` term, L3's drop in late July would show up as a second, spurious "regime change" (a fall in *recorded* defects only):"""),
+    ("code", """base_noqc = smf.glm(base_formula.replace(" + qc_change", ""), model_df, family=sm.families.Binomial(),
+                    var_weights=model_df["units_produced"]).fit(scale="X2")
+l3_df = model_df[model_df["line"] == "L3"].assign(expected=lambda d: base_noqc.predict(d) * d["units_produced"])
+print("L3 best split without the QC indicator:", best_split(l3_df)[:2])"""),
     ("code", """regime_line = splits["LLR"].idxmax()
 regime_date = splits.loc[regime_line, "split_date"]
 df["regime"] = ((df["line"] == regime_line) & (df["production_date"] >= pd.Timestamp(regime_date))).astype(int)
@@ -209,7 +277,7 @@ Each batch is one observation of a noisy process. Besides binomial sampling nois
     ("code", """model_df = df.dropna(subset=["mold_temp", "humidity_pct"]).copy()
 model_df["y"] = np.log((model_df["defective_units"] + 0.5) / (model_df["units_produced"] - model_df["defective_units"] + 0.5))
 full_formula = (f"y ~ C(line) + C(supplier_name) + C(shift) + mold_temp + {HUMIDITY}"
-                " + cycle_time_s + machine_age_years + ambient_temp_c + regime + days_since_cleaning")
+                " + cycle_time_s + machine_age_years + ambient_temp_c + regime + qc_change + days_since_cleaning")
 full = smf.ols(full_formula, model_df).fit(cov_type="HC3")
 print(full.summary().tables[1])"""),
     ("code", """op_model = smf.ols(full_formula.replace("C(line)", "C(operator_id)"), model_df).fit()
@@ -255,7 +323,7 @@ print("weighted quasi-binomial GLM, machine age:          p =", f"{g_full.pvalue
 answers["B1_direct_drivers"] = sorted(name_map[k] for k, p in tests.items() if p < 0.001)
 answers["B2_leakage_columns"] = ["qc_inspection_min", "rework_cost_eur"]
 answers["B1_direct_drivers"], answers["B2_leakage_columns"]"""),
-    ("md", "## 3. Interpret salient features\n\n### 3.1 Which single supplier would be best? (Simpson's paradox)"),
+    ("md", "## 3. Interpret salient features\n\n### 3.1 Which single supplier would be best? (Simpson's paradox and a mediator)"),
     ("code", """pooled = lambda g: g["defective_units"].sum() / g["units_produced"].sum()
 overall = df.groupby("supplier_name").apply(pooled).rename("overall")
 within = df.groupby(["line", "supplier_name"]).apply(pooled).unstack()
@@ -272,19 +340,30 @@ for k, s in enumerate(within.columns):
     axes[1].bar(np.arange(4) + (k - 1) * w, within[s] * 100, width=w - 0.02, color=colors[s], label=s)
 axes[1].set_xticks(range(4), within.index); axes[1].legend(frameon=False, fontsize=8, ncol=3)
 axes[1].set_title("Within each line", loc="left", fontsize=10)
-fig.suptitle("Beta looks worst overall but is best on every line", x=0.01, ha="left", fontsize=11)
+fig.suptitle("Beta looks worst overall; within lines it beats Alpha", x=0.01, ha="left", fontsize=11)
 plt.tight_layout()"""),
-    ("md", """Because the humidity response differs by supplier (section 3.2), a supplier's advantage depends on the humidity, so a single coefficient cannot answer the question. The question is a plant-wide switch, so the model answers it directly: predict every batch as if it had used one supplier, keep everything else as it was, and compare the expected overall defect rates."""),
+    ("md", """Because the humidity response differs by supplier (section 3.2), a supplier's advantage depends on the humidity, so a single coefficient cannot answer the question. The question is a plant-wide switch, so the model answers it directly: predict every batch as if it had used one supplier and compare the expected overall defect rates.
+
+One input must **not** stay as it was: the cycle time. It is set by the recipe of the resin grade (`suppliers.csv`), so a batch switched to Gamma would run Gamma's 36 s recipe, plus the same operator adjustment it had. Cycle time is a **mediator** of the supplier effect: holding it fixed answers a different question (the supplier's effect at an unchanged cycle)."""),
     ("code", """def expected_rate(model, data, **changes):
     p = 1 / (1 + np.exp(-model.predict(data.assign(**changes))))
     return float((p * data["units_produced"]).sum() / data["units_produced"].sum())
 
 now = expected_rate(full, model_df)
-switch = pd.Series({s: expected_rate(full, model_df, supplier_name=s) for s in ["Alpha", "Beta", "Gamma"]})
-print((switch / now).round(3).rename("expected defects vs today").to_string())
-answers["C1_best_supplier"] = str(switch.idxmin())
+recipe = suppliers.set_index("supplier_name")["recipe_cycle_time_s"]
+adjust = model_df["cycle_time_s"] - model_df["supplier_name"].map(recipe)   # operator's adjustment
+switch = pd.DataFrame({
+    "cycle held fixed": {s: expected_rate(full, model_df, supplier_name=s) / now for s in recipe.index},
+    "with its recipe": {s: expected_rate(full, model_df, supplier_name=s,
+                                         cycle_time_s=(recipe[s] + adjust).clip(18, 45)) / now for s in recipe.index},
+})
+print(switch.round(3).to_string())
+answers["C1_best_supplier"] = str(switch["with its recipe"].idxmin())
 answers["C1_best_supplier"]"""),
-    ("md", """**Beta looks worst overall but is best within every line.** About 75 % of Beta's batches go to L4, the oldest line with the highest defect rate, while Alpha mostly supplies the better lines. The aggregate comparison mixes up "which supplier" with "which line". If Beta supplied every batch, the plant would expect about 10 % fewer defects than today, so switching away from it on the evidence of the overall average would be a costly mistake."""),
+    ("md", """Two traps meet here:
+
+- **Simpson's paradox.** Beta looks worst overall because about 75 % of its batches go to L4, the oldest line with the highest defect rate. Within each line it beats Alpha. The aggregate comparison mixes up "which supplier" with "which line".
+- **The mediator.** At an unchanged cycle time Beta is the best resin. But Gamma's recipe runs a longer cycle, and a longer cycle lowers defects, so **with its own recipe Gamma gives the fewest defects**. Holding every column fixed ("controlling for everything") gives the right answer to the wrong question."""),
     ("md", "### 3.2 Humidity optimum for Alpha resin"),
     ("code", """pooled_formula = full_formula.replace(HUMIDITY, "humidity_pct + I(humidity_pct**2)")
 pooled_fit = smf.ols(pooled_formula, model_df).fit(cov_type="HC3")
@@ -326,7 +405,7 @@ naive = rest["defective_units"].sum() / rest["units_produced"].sum()
 answers["C3_rate_with_regular_cleaning"] = round(float(observed * ratio), 5)
 print(f"expected change in defects: {100 * (ratio - 1):.1f} %")
 print(f"observed rate {observed:.5f} -> with regular cleaning {observed * ratio:.5f}")
-print(f"(naive: the rate outside July and August, {naive:.5f}, also removes the hot-season and L2 effects)")"""),
+print(f"(naive: the rate outside July and August, {naive:.5f}, also removes the hot-season, L2 and L3 QC effects)")"""),
     ("md", """The model keeps every other condition of each batch as it was and only shortens the time since cleaning, so the answer isolates the cleaning effect. Comparing summer with the rest of the year would overstate it, because summer also brings hotter molds and falls after the L2 regime change."""),
     ("md", "## Answer"),
     ("code", """Path("reference_answer.json").write_text(json.dumps(answers, indent=2) + "\\n")

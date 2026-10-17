@@ -17,24 +17,24 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 | Column | Type | Notes |
 |---|---|---|
 | `batch_id` | str | random 6-digit ids (`B-670945`), not sequential |
-| `production_date` | date | ISO `YYYY-MM-DD` |
+| `production_date` | str | Each line's export has its own format: ISO on L2 and L3, `MM/DD/YYYY` on L1, `DD/MM/YYYY` on L4 (**T15**) |
 | `line` | str | `L1`-`L4` |
 | `shift` | str | Day / Night, with **inconsistent labels** |
 | `operator_id` | str | 24 operators, each tied to one line |
 | `supplier_code` | str | Resin supplier, join key to `suppliers.csv`, with **inconsistent case and whitespace** |
 | `machine_age_years` | float | Age of the press |
 | `ambient_temp_c` | float | Hall temperature, seasonal |
-| `mold_temp` | float | Mold temperature. **Line L3 logs in °F**, others in °C. `0` = sensor failure. **L1 reads 8 °C high from 2025-04-14** |
+| `mold_temp` | float | Mold temperature. **Line L3 logs in °F**, others in °C. `0` = sensor failure. **L1 reads 8 °C high from 2025-04-14** (T12), **L3 really runs 6 °C hotter from 2025-05-19** (T16) |
 | `humidity_pct` | float | Hall humidity. Missing as empty **or `-1` sentinel** |
-| `cycle_time_s` | float | Injection cycle time |
+| `cycle_time_s` | float | Injection cycle time: the recipe of the resin grade plus the operator's adjustment (**T14**) |
 | `units_produced` | int | Batch size |
-| `defective_units` | int | Defective parts found by QC |
+| `defective_units` | int | Defective parts found by QC. **From 2025-07-21 L3 QC finds only 45 % of them** (T17) |
 | `qc_inspection_min` | float | Time QC spent on the batch (**leakage**) |
 | `rework_cost_eur` | float | Cost of reworking defective parts (**leakage**) |
 
-`data/suppliers.csv` (3 rows): `supplier_code`, `supplier_name` (Alpha, Beta, Gamma), `resin_grade`, `country`, `pre_dried` (Alpha: `no`, the **clue for T11**).
+`data/suppliers.csv` (3 rows): `supplier_code`, `supplier_name` (Alpha, Beta, Gamma), `resin_grade`, `country`, `pre_dried` (Alpha: `no`, the **clue for T11**), `recipe_cycle_time_s` (PP-H350: 30 s, PP-H420 = Gamma: 36 s, the **fact behind T14**).
 
-`data/maintenance.csv` (~76 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) and one `calibration_check` on L1 (2025-09-22) whose note says the sensor reads 8.0 °C high (the **clue for T12**).
+`data/maintenance.csv` (~76 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) whose note only says that the sensor was replaced. In v3 a `calibration_check` note stated the 8.0 °C offset; v4 removed it (T12 now has to be measured).
 
 ## 3. Data generating process (DGP)
 
@@ -46,9 +46,9 @@ defective_units_i ~ Binomial(units_produced_i, p_i)
 logit(p_i) = -3.6
            + b_line[line_i]                    L1 0.0 | L2 0.1 | L3 0.2 | L4 0.9
            + b_supplier[supplier_i]            Alpha 0.0 | Beta -0.25 | Gamma -0.10
-           + 0.03   * (mold_temp_c_i - 210)    hotter mold -> more defects
+           + 0.03   * (mold_temp_c_i - 210)    hotter mold -> more defects (L3 +6 degC from 2025-05-19, T16)
            + 0.0012 * (humidity_pct_i - h*_s)^2  U-shape, h* = 30.0 for Alpha (not pre-dried), 42.92 for Beta and Gamma
-           - 0.04   * (cycle_time_s_i - 30)    rushed cycles -> more defects
+           - 0.04   * (cycle_time_s_i - 30)    rushed cycles -> more defects; cycle = recipe(grade) + N(0, 4), clipped 18-45
            + 0.15   * [shift_i = Night]
            + 0.60   * [line_i = L2 and date_i >= 2025-06-16]   mold wear on L2
            + 0.02   * days_since_cleaning_i    dirty molds; cleaned before the first shift
@@ -64,8 +64,10 @@ Covariates:
 - `days_since_cleaning`: from `maintenance.csv`. Cleanings come every 10-16 days, but every 26-35 days when the previous cleaning falls in July or August (holidays). Long gaps coincide with the hot season.
 - Sensor drift: the published L1 `mold_temp` from 2025-04-14 on is the true value + 8.0 °C. The DGP uses the true value.
 - `operator_id`: tied to a line, **no direct effect**.
+- Cycle time (v4, T14): `cycle_time_s = recipe_cycle_time_s[grade] + N(0, 4)`, clipped to 18-45 s. Gamma's grade runs a 36 s recipe, so Gamma batches have longer cycles and, through the cycle, fewer defects. The supplier effect therefore has a direct part (Beta best) and a part mediated by the cycle (Gamma best in total).
+- QC detection (v4, T17): the binomial draw above gives the **true** defects. From 2025-07-21 L3 QC records `Binomial(true, 0.45)` of them; `rework_cost_eur` is still computed from the true defects (rework still has to fix every bad part), and `qc_inspection_min` drops by 8 minutes. Every answer key is about **recorded** defects, as the questions define them.
 - `units_produced`: smaller batches on L4 (lognormal around 250 vs 600), so pooled and mean-of-rates differ.
-- Leakage: `rework_cost_eur ≈ 4.2 · defective_units · noise`, `qc_inspection_min ≈ 20 + 0.08 · defective_units + noise`. Both are **computed after QC from the outcome**.
+- Leakage: `rework_cost_eur ≈ 4.2 · true defects · noise`, `qc_inspection_min ≈ 20 + 0.08 · recorded defects - 8 · [L3 fast QC] + noise`. Both are **computed after QC from the outcome**.
 
 ## 4. Planted traps
 
@@ -82,10 +84,14 @@ Covariates:
 | T9 | Simpson's paradox | Beta worst overall, best within every line | wrong supplier recommended | C1 |
 | T10 | Regime change | L2 defect level jumps on 2025-06-16 | missed, averaged away | B3 |
 | T11 | Interaction (v3) | humidity optimum 30 % for Alpha, 42.9 % for Beta and Gamma; clue `pre_dried` | one humidity curve for all suppliers (optimum ≈ 36.8) | C2, C1 |
-| T12 | Silent sensor drift (v3) | L1 `mold_temp` +8 °C from 2025-04-14, plausible values; clue in the maintenance log | readings taken at face value | A4 |
+| T12 | Silent sensor drift (v3, harder in v4) | L1 `mold_temp` +8 °C from 2025-04-14, plausible values; v4: the log only says the sensor was replaced, the offset must be measured (DiD against other lines) | readings taken at face value | A4 |
 | T13 | Hidden driver in another file (v3) | defects rise 0.02 logit per day since cleaning; long gaps in July-August | log ignored: summer heat looks like the cause, cleaning effect overstated | B1, C3 |
+| T14 | Mediator in the counterfactual (v4) | cycle time follows the recipe of the resin grade (`suppliers.csv`), and a longer cycle lowers defects | supplier switched with the cycle held fixed: Beta | C1 |
+| T15 | One date format per line (v4) | L1 `MM/DD/YYYY`, L4 `DD/MM/YYYY`, L2 and L3 ISO; each line consistent | plain `to_datetime` fails; `format="mixed"` or `dayfirst=True` misreads days ≤ 12 | A4, B3, C3 (sensor date, regime date, cleaning join) |
+| T16 | Real process change as a contrast (v4) | L3 mold really 6 °C hotter from 2025-05-19, defects rise with it, no log entry | every step "corrected" like a sensor | A4 |
+| T17 | Detection change (v4) | L3 QC finds 45 % of the bad parts from 2025-07-21; rework per recorded defect doubles, QC minutes drop by 8 | the drop in recorded L3 defects reported as the regime change | B3 (and B1, C1-C3 through the model fit) |
 
-Every trap is detectable by a careful analyst with pandas, and each one maps to at least one scored question. Since v3 a trap may also break an answer to a question that does not name it (A4 never mentions sensors, B1 never mentions maintenance). Each such trap has a clue in the published files.
+Every trap is detectable by a careful analyst with pandas, and each one maps to at least one scored question. Since v3 a trap may also break an answer to a question that does not name it (A4 never mentions sensors, B1 never mentions maintenance). In v3 each such trap had a clue that could be read in the published files. **From v4 the clue has to be inferred from the data**: a step in a reading, a ratio that changes, a format that only one line uses. `tests/test_reference.py::test_v4_clues_are_recoverable_from_the_data` checks on 10 seeds that each one can be found.
 
 ## 5. Questions, answer key, metrics
 
@@ -152,6 +158,22 @@ Pilot 01 (Sonnet 5.5 with code execution) scored **0.995**, the same as the refe
 
 Reference findings for v3 (`tests/test_reference.py`, 10 seeds; 20 in an offline check): the interaction model recovers Alpha's optimum within 1 point, the plant-wide switch always picks Beta, the C3 estimate stays within 0.2 of the zero-point scale, and the driver set stays exact. Without `days_since_cleaning`, ambient temperature turns significant (p < 0.05 on 18 of 20 seeds, p = 8e-5 on seed 42), which is the B1 effect of T13.
 
+## 7d. Calibration after the harness runs on v3 (Stage 7)
+
+23 runs of `claude -p` (Haiku 5.5 and Sonnet 5.5 5× in two prompt variants, Opus 5.5 3×) scored 0.911-0.996 with **no trap hit in any run** (`outputs/runs/v3_seed42/summary.md`). Every v3 clue was readable (the calibration note, `pre_dried`, the cleaning log), and the models read every file. The transcripts also showed what they never do: they parse dates with a plain `pd.to_datetime`, they compute the C1 counterfactual by switching the supplier with every other column held fixed, and they treat a step in a reading as either a sensor fault or a process change by default, not by evidence.
+
+v4 builds on these observations. Two of its traps (T14, T17) were also proposed independently by other LLMs in a red-team prompt (`docs/red_team_prompt.md`): ChatGPT ("cycle time is a mediator", "apparent quality improvement caused by a QC detection change") and Perplexity ("QC inspection intensity", the leakage columns as evidence of how the outcome was recorded). Ideas that were not adopted, and why:
+
+| Idea (source) | Why not in v4 |
+|---|---|
+| Unlogged scrap runs, selective logging, discarded warm-up (Gemini, ChatGPT, Grok) | the truth is not identifiable from the data, so the fair answer is "cannot be determined", which a deterministic key cannot score |
+| Pseudoreplication by delivery lot (Gemini, ChatGPT) | changes p-values, not point answers; it would add noise to B1 and reward a significance convention, not reasoning |
+| Sequence effects: resin changeover, defects attributed to the previous batch, startup after idle, cycle time adjusted after a bad batch (Gemini, ChatGPT, DeepSeek) | need production timestamps and batch order, which the schema does not have; a candidate for v5 |
+| Censored or saturated readings, cumulative or rolling counters (Gemini, Grok, DeepSeek) | found by a histogram or a monotonicity check, so closer to a cleaning checklist than to reasoning about the process |
+| Reused operator ids (Perplexity, Grok) | operators have no effect in the DGP, so no answer would change |
+| Reactive maintenance (ChatGPT), shared chiller across lines (Gemini) | conflict with the scheduled cleanings of T13 or need a much larger DGP; the C3 answer would become ambiguous |
+| Sampled numerator on one line (DeepSeek) | the same failure mode as T17 (a change in what is recorded); one such trap is enough |
+
 ## 8. Ablation semantics
 
 Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). All random draws happen whatever the switches are ("common random numbers"), so a variant differs from the full task only in the switched-off trap.
@@ -171,8 +193,12 @@ v3 fixed a flaw in this claim. Defect counts used to come from `rng.binomial`, w
 | simpson_paradox | supplier allocation independent of line | C1 naive = truth |
 | regime_change | no level shift | B3 truth = null |
 | interaction | one humidity optimum (36.62) for every supplier | C2 truth = 36.62, C2 naive ≈ truth |
-| sensor_drift | L1 sensor accurate; the calibration note says so | A4 naive = raw median (as in v2) |
+| sensor_drift | L1 sensor accurate; the log still lists the replacement | A4 naive = raw median (as in v2) |
 | hidden_driver | cleanings have no effect (the log is still published) | C3 truth = A3 |
+| mediator | every grade runs a 30 s recipe | C1 truth = the held-fixed answer (Beta) |
+| date_formats | ISO dates on every line | none (only parsing changes) |
+| real_process_change | L3 mold temperature unchanged | A4 truth moves with the L3 readings |
+| detection_change | L3 QC finds every bad part | B3 has no decoy; recorded = true defects |
 
 ## 9. Contamination protection
 

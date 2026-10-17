@@ -33,6 +33,7 @@ def test_prompt_never_names_a_trap_answer():
     for leak in (
         "fahrenheit", "°f", "-1", "duplicate", "rework_cost", "qc_inspection", "beta", "l2", "simpson",
         "sensor", "drift", "calibrat", "offset", "interaction", "pre_dried", "july", "august", "summer", "holiday",
+        "gamma", "mediat", "cycle time", "date format", "dd/mm", "mm/dd", "setpoint", "l3", "inspection", "detect",
     ):
         assert leak not in text, leak
 
@@ -65,7 +66,7 @@ def test_field_errors_are_isolated():
     del ans["C2_optimal_humidity_pct"]
     parsed = parse_answer(json.dumps(ans))
     assert set(parsed.errors) == {"A1", "B3", "C2"}
-    assert parsed.values["C1"] == "Beta"
+    assert parsed.values["C1"] == json.loads(REFERENCE)["C1_best_supplier"]
 
 
 def test_normalization():

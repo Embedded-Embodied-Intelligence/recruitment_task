@@ -22,6 +22,10 @@ traps:
   interaction: true          # T11 (v3)
   sensor_drift: true         # T12 (v3)
   hidden_driver: true        # T13 (v3)
+  mediator: true             # T14 (v4)
+  date_formats: true         # T15 (v4)
+  real_process_change: true  # T16 (v4)
+  detection_change: true     # T17 (v4)
 
 # Model ids are pinned (no aliases such as "sonnet"), so a rerun hits the same model.
 # claude_cli runs Claude Code in print mode on the operator's Pro login (edabench/backends.py);

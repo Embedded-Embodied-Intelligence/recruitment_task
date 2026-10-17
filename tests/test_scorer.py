@@ -136,7 +136,7 @@ def test_category_case_insensitive():
 def test_weights_and_sections():
     assert sum(WEIGHTS.values()) == pytest.approx(1)
     r = score_text(answer_text(C1_best_supplier="Alpha"), GT)
-    assert r["sections"]["interpret"] < 1 and r["sections"]["describe"] == pytest.approx(1, abs=1e-3)
+    assert r["sections"]["interpret"] < 1 and r["sections"]["describe"] == score_text(answer_text(), GT)["sections"]["describe"]
     assert r["total"] == pytest.approx(score_text(answer_text(), GT)["total"] - WEIGHTS["C1"], abs=1e-6)
 
 

@@ -71,7 +71,6 @@ date,line,event,note
 2025-09-12,L2,mold_cleaning,
 2025-09-16,L1,mold_cleaning,
 2025-09-18,L3,mold_cleaning,
-2025-09-22,L1,calibration_check,Mold temperature sensor reads 8.0 degC above the reference thermometer.
 2025-09-26,L4,mold_cleaning,
 2025-09-27,L2,mold_cleaning,
 2025-09-30,L1,mold_cleaning,

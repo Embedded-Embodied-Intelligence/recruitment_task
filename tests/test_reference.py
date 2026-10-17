@@ -9,13 +9,13 @@ import pandas as pd
 import pytest
 import statsmodels.formula.api as smf
 
-from edabench.generate import CLEANING_PLAN_DAYS, DIRECT_DRIVERS, HUMIDITY_OPT_ALPHA, generate
-from tests.test_generate import cleaned
+from edabench.generate import CLEANING_PLAN_DAYS, DIRECT_DRIVERS, DRIFT_C, HUMIDITY_OPT_ALPHA, generate
+from tests.test_generate import cleaned, qc_change, reference_clean, sensor_offset
 
 HUMIDITY = "C(supplier_name):humidity_pct + C(supplier_name):I(humidity_pct**2)"
 FORMULA = (
     f"y ~ C(line) + C(supplier_name) + C(shift) + mold_temp + {HUMIDITY}"
-    " + cycle_time_s + machine_age_years + ambient_temp_c + regime + days_since_cleaning"
+    " + cycle_time_s + machine_age_years + ambient_temp_c + regime + qc_change + days_since_cleaning"
 )
 SEEDS = range(42, 52)
 
@@ -52,8 +52,16 @@ def test_reference_recovers_drivers_supplier_optimum_and_cleaning(seed):
     }
     assert sorted(k for k, v in p.items() if v < 0.001) == DIRECT_DRIVERS
 
-    switch = {s: expected_rate(full, df, supplier_name=s) for s in ("Alpha", "Beta", "Gamma")}
+    # C1: the new resin comes with its grade's recipe, so the cycle time moves with it (T14).
+    recipe = df["supplier_name"].map(df.groupby("supplier_name")["recipe_cycle_time_s"].first())
+    recipes = df.groupby("supplier_name")["recipe_cycle_time_s"].first()
+    switch = {
+        s: expected_rate(full, df, supplier_name=s, cycle_time_s=(df["cycle_time_s"] - recipe + recipes[s]).clip(18, 45))
+        for s in ("Alpha", "Beta", "Gamma")
+    }
     assert min(switch, key=switch.get) == q["C1"]["truth"]
+    held = {s: expected_rate(full, df, supplier_name=s) for s in ("Alpha", "Beta", "Gamma")}
+    assert min(held, key=held.get) == q["C1"]["naive"]
 
     b = full.params
     alpha_optimum = -b["C(supplier_name)[Alpha]:humidity_pct"] / (2 * b["C(supplier_name)[Alpha]:I(humidity_pct ** 2)"])
@@ -63,3 +71,15 @@ def test_reference_recovers_drivers_supplier_optimum_and_cleaning(seed):
     ratio = expected_rate(full, df, days_since_cleaning=df["days_since_cleaning"] % CLEANING_PLAN_DAYS) / expected_rate(full, df)
     c3 = q["A3"]["truth"] * ratio
     assert abs(c3 - q["C3"]["truth"]) < 0.3 * q["C3"]["scale"]
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_v4_clues_are_recoverable_from_the_data(seed):
+    """Each v4 clue is measured, not read: date formats, the sensor offset, the QC change."""
+    ds = generate(seed)
+    raw = reference_clean(ds.batches, ds.suppliers, ds.maintenance, fix_sensor=False)
+    # ~0.4 degC standard error (mold noise sd 6); A4 below shows what that costs.
+    assert abs(sensor_offset(raw, "L1", "2025-04-14", ["L2", "L4"]) - DRIFT_C) < 1.0
+    line, day = qc_change(raw)
+    assert line == "L3" and abs((pd.Timestamp(day) - pd.Timestamp("2025-07-21")).days) <= 7
+    assert abs(cleaned(ds)["mold_temp"].median() - ds.ground_truth["questions"]["A4"]["truth"]) < 0.3
