@@ -1,0 +1,22 @@
+{
+  "A1_unique_batches": 3000,
+  "A2_missing_humidity_batches": 208,
+  "A3_overall_defect_rate": 0.05601,
+  "A4_median_mold_temp_c": 211.0,
+  "B3_regime_change": {
+    "line": "L2",
+    "date": "2025-06-16"
+  },
+  "B1_direct_drivers": [
+    "cycle_time_s",
+    "humidity_pct",
+    "mold_temp",
+    "shift"
+  ],
+  "B2_leakage_columns": [
+    "qc_inspection_min",
+    "rework_cost_eur"
+  ],
+  "C1_best_supplier": "Beta",
+  "C2_optimal_humidity_pct": 45.2
+}

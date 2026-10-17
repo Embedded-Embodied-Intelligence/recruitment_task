@@ -118,6 +118,12 @@ Section weights: Describe 0.30, Salient 0.40, Interpret 0.30. A missing or unpar
 - Likely failed: C1 (Simpson), C2 (if humidity was dismissed).
 - Expected total: 0.4-0.7. If a model scores 1.0, add difficulty (for example, a second regime change or an interaction effect). If it scores ~0, check the prompt for ambiguity before blaming the model.
 
+## 7a. Reference solution findings (Stage 3)
+
+`reference/reference_solution.ipynb` reaches every answer from the data alone and scores 0.998 against the key (the only loss is C2: 45.2 vs 45.0).
+
+**Emergent trap (not planted): variance misspecification.** With batch-level overdispersion, a binomial GLM weighted by batch size treats large batches as far more informative than they are. Its standard errors become too small, and with seed 42 it flags `operator_id` as significant (p = 9e-4) although operators have no effect. An empirical-logit OLS with HC3 errors recovers exactly the true driver set on all 10 tested seeds (`tests/test_reference.py`) and on 20 seeds in an offline check. B1 therefore also rewards choosing a model whose noise assumptions fit the data.
+
 ## 8. Ablation semantics
 
 Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). All random draws happen whatever the switches are ("common random numbers"), so a variant differs from the full task only in the switched-off trap.
