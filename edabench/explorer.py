@@ -202,7 +202,7 @@ code { font-family: var(--font-data); font-size: 0.85em; }
   <section aria-labelledby="h-summary">
     <h2 id="h-summary">Mean score per model</h2>
     <div class="tiles" id="tiles"></div>
-    <p class="small muted">Full prompt. A score of 1 is the exact answer on all ten questions; 0 on a question is the naive answer its trap produces. Hard questions are A4, B3, C2 and C3.</p>
+    <p class="small muted">Full prompt. A score of 1 is the exact answer on all ten questions; 0 on a question is the naive answer its trap produces. <span id="hard-list"></span></p>
   </section>
 
   <section aria-labelledby="h-grid">
@@ -274,10 +274,11 @@ const qScore = (r, q) => (r.questions.find((x) => x.qid === q) || {}).score ?? 0
 $("title").textContent = DATA.title || "Benchmark results";
 $("eyebrow").textContent = `Dataset ${DATA.dataset} · ${DATA.runs.length} scored runs`;
 $("headline").textContent = DATA.headline || "";
+$("hard-list").textContent = `Hard questions are ${(DATA.hard || ["A4", "B3", "C2", "C3"]).join(", ")}.`;
 
 // Tiles. The weighted mean hides misses on the few hard questions, so each tile also gives the
 // number of exactly right answers and the weighted score on the questions some model gets wrong.
-const HARD = ["A4", "B3", "C2", "C3"];
+const HARD = DATA.hard || ["A4", "B3", "C2", "C3"];
 const exactCount = (r) => r.questions.filter((q) => q.score >= 0.999).length;
 const hardScore = (r) => { const qs = r.questions.filter((q) => HARD.includes(q.qid)); const w = qs.reduce((a, q) => a + q.weight, 0); return w ? qs.reduce((a, q) => a + q.weight * q.score, 0) / w : 0; };
 for (const m of models) {
@@ -287,7 +288,8 @@ for (const m of models) {
     el("span", { class: "label", text: label(m) }),
     el("span", { class: "value", text: fmt(mean(t)) }),
     el("span", { class: "sub", text: `${rs.length} runs · sd ${fmt(sd(t))} · ${fmt(Math.min(...t))}–${fmt(Math.max(...t))}` }),
-    el("span", { class: "sub", text: `exact answers ${fmt(mean(rs.map(exactCount)), 1)}/10 · hard questions ${fmt(mean(rs.map(hardScore)))}` })));
+    el("span", { class: "sub", text: `exact answers ${fmt(mean(rs.map(exactCount)), 1)}/10 · hard questions ${fmt(mean(rs.map(hardScore)))}` }),
+    ...(rs.some((r) => !r.format_ok) ? [el("span", { class: "sub", text: `${rs.filter((r) => r.format_ok).length} runs with an answer: mean ${fmt(mean(rs.filter((r) => r.format_ok).map((r) => r.total)))}` })] : [])));
 }
 
 // Score grid with a variant toggle

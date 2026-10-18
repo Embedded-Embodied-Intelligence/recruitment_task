@@ -6,7 +6,7 @@ from pathlib import Path
 from edabench.explorer import collect, render
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNS = ROOT / "outputs" / "runs" / "v4_seed42"
+RUNS = ROOT / "outputs" / "runs" / "v5_seed42"
 
 
 def test_explorer_embeds_every_scored_run():

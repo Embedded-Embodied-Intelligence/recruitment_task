@@ -1,0 +1,127 @@
+{
+  "title": "EDA-Bench v5",
+  "headline": "On the v5 dataset, whose new traps give no warning, Sonnet 5.5 with code execution scores 0.78-0.98 (mean 0.866, v4: 0.960) and Haiku 5.5 0.77-0.88 on the runs it finished. A frozen humidity logger was missed in 9 of 10 runs.",
+  "hard": [
+    "A2",
+    "A4",
+    "C2",
+    "C3"
+  ],
+  "history": [
+    {
+      "stage": "Pilot 00",
+      "setting": "Sonnet 5.5, app, no code, v1",
+      "score": 0.652
+    },
+    {
+      "stage": "Pilot 01",
+      "setting": "Sonnet 5.5, app with code, v2",
+      "score": 0.995
+    },
+    {
+      "stage": "Pilot 02",
+      "setting": "Sonnet 5.5, app with code, v3",
+      "score": 0.872
+    },
+    {
+      "stage": "v3 harness",
+      "setting": "Haiku 5.5, 5 runs",
+      "score": 0.955
+    },
+    {
+      "stage": "v3 harness",
+      "setting": "Sonnet 5.5, 5 runs",
+      "score": 0.982
+    },
+    {
+      "stage": "v3 harness",
+      "setting": "Opus 5.5, 3 runs",
+      "score": 0.994
+    },
+    {
+      "stage": "v4 harness",
+      "setting": "Haiku 5.5, 5 runs",
+      "score": 0.879
+    },
+    {
+      "stage": "v4 harness",
+      "setting": "Sonnet 5.5, 5 runs",
+      "score": 0.96
+    },
+    {
+      "stage": "v4 harness",
+      "setting": "Opus 5.5, 3 runs",
+      "score": 0.969
+    },
+    {
+      "stage": "v5 harness",
+      "setting": "Haiku 5.5, 5 runs (2 hit the turn limit)",
+      "score": 0.504
+    },
+    {
+      "stage": "v5 harness",
+      "setting": "Haiku 5.5, 3 finished runs",
+      "score": 0.84
+    },
+    {
+      "stage": "v5 harness",
+      "setting": "Sonnet 5.5, 5 runs",
+      "score": 0.866
+    }
+  ],
+  "findings": [
+    {
+      "kind": "missed",
+      "question": "A2",
+      "title": "Frozen humidity logger counted as valid",
+      "text": "The L2 logger repeats 50.2 % for six weeks (123 readings; other lines never repeat a value more than twice in a row). Nine of ten runs counted only the blank and -1 readings and answered 226 instead of 349. The one Sonnet run that found the 'stuck-sensor window' scored 0.98.",
+      "runs": [
+        "claude-sonnet/full/run_04",
+        "claude-sonnet/full/run_01",
+        "claude-haiku/full/run_03"
+      ]
+    },
+    {
+      "kind": "estimation",
+      "question": "C3",
+      "title": "Unlogged cleanings taken at face value",
+      "text": "Ten weeks of L4 cleanings are missing from the log. Only two runs mentioned the 69-day gap, and one of them still used it as logged. One run concluded that L4 has no cleaning effect at all, and one overstated the saving and answered 0.0473 (truth 0.0519, score 0).",
+      "runs": [
+        "claude-sonnet/full/run_02",
+        "claude-sonnet/full/run_01",
+        "claude-sonnet/full/run_05"
+      ]
+    },
+    {
+      "kind": "estimation",
+      "question": "A4",
+      "title": "Sensor offset still uncorrected or misestimated",
+      "text": "As in v4, the L1 sensor step was either left uncorrected or corrected by the wrong amount: the trap answer was given in 2 of 5 Sonnet runs and 1 of 3 finished Haiku runs.",
+      "runs": [
+        "claude-sonnet/full/run_01",
+        "claude-sonnet/full/run_03",
+        "claude-haiku/full/run_01"
+      ]
+    },
+    {
+      "kind": "format",
+      "question": "all",
+      "title": "Turn limit reached",
+      "text": "Two of five Haiku runs used all 60 turns without a final answer and scored 0 (none did on v4 with the full prompt). The v5 checks take more steps, and Haiku spent them on exploration.",
+      "runs": [
+        "claude-haiku/full/run_02",
+        "claude-haiku/full/run_05"
+      ]
+    },
+    {
+      "kind": "found",
+      "question": "A1",
+      "title": "Batch numbers shared by two lines were found",
+      "text": "Every finished run noticed that 37 batch numbers occur on two lines with different contents, and counted them as different batches. The prompt says each line's MES terminal assigns the number, and the rows differ in every column, so this clue was louder than intended.",
+      "runs": [
+        "claude-sonnet/full/run_01",
+        "claude-sonnet/full/run_05"
+      ]
+    }
+  ]
+}

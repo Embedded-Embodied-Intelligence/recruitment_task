@@ -29,7 +29,8 @@ bench:
 	python3 -m edabench.runner --model $(MODELS) --variant $(VARIANTS) --runs $(RUNS)
 
 report:
-	python3 -m edabench.report outputs/runs/v4_seed42
+	python3 -m edabench.report outputs/runs/v5_seed42
 
 explorer:
-	python3 -m edabench.explorer outputs/runs/v4_seed42 --out docs/explorer.html
+	python3 -m edabench.explorer outputs/runs/v5_seed42 --out docs/explorer.html
+	python3 -m edabench.explorer outputs/runs/v4_seed42 --out docs/explorer_v4.html

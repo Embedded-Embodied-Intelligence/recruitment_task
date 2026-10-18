@@ -1,0 +1,112 @@
+{
+  "total": 0.0,
+  "sections": {
+    "describe": 0.0,
+    "salient_features": 0.0,
+    "interpret": 0.0
+  },
+  "format_ok": false,
+  "questions": [
+    {
+      "qid": "A1",
+      "score": 0.0,
+      "weight": 0.07,
+      "answer": null,
+      "truth": 3000,
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "A2",
+      "score": 0.0,
+      "weight": 0.07,
+      "answer": null,
+      "truth": 349,
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "A3",
+      "score": 0.0,
+      "weight": 0.07,
+      "answer": null,
+      "truth": 0.055032,
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "A4",
+      "score": 0.0,
+      "weight": 0.07,
+      "answer": null,
+      "truth": 211.5,
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "B1",
+      "score": 0.0,
+      "weight": 0.14,
+      "answer": null,
+      "truth": [
+        "cycle_time_s",
+        "humidity_pct",
+        "mold_temp",
+        "shift"
+      ],
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "B2",
+      "score": 0.0,
+      "weight": 0.1,
+      "answer": null,
+      "truth": [
+        "qc_inspection_min",
+        "rework_cost_eur"
+      ],
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "B3",
+      "score": 0.0,
+      "weight": 0.1,
+      "answer": null,
+      "truth": {
+        "line": "L2",
+        "date": "2025-06-16"
+      },
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "C1",
+      "score": 0.0,
+      "weight": 0.12,
+      "answer": null,
+      "truth": "Gamma",
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "C2",
+      "score": 0.0,
+      "weight": 0.13,
+      "answer": null,
+      "truth": 30.0,
+      "note": "no JSON answer found",
+      "trap_hit": null
+    },
+    {
+      "qid": "C3",
+      "score": 0.0,
+      "weight": 0.13,
+      "answer": null,
+      "truth": 0.051864,
+      "note": "no JSON answer found",
+      "trap_hit": null
+    }
+  ]
+}
