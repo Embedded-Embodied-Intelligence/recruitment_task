@@ -1,4 +1,4 @@
-# Datasheet: EDA-Bench molding-plant dataset (v4)
+# Datasheet: EDA-Bench molding-plant dataset (v5)
 
 Structured after *Datasheets for Datasets* (Gebru et al., 2021). Design details and the answer key are in `docs/task_design.md`, which is not given to the models.
 
@@ -14,7 +14,7 @@ Structured after *Datasheets for Datasets* (Gebru et al., 2021). Design details 
 |---|---|---|
 | `data/batches.csv` | 3,060 (3,000 unique batches + duplicates) | one production batch: date, line, shift, operator, supplier, machine age, hall and mold temperature, humidity, cycle time, units produced, defective units, QC minutes, rework cost |
 | `data/suppliers.csv` | 3 | a resin supplier: name, grade, country, pre-drying, standard cycle-time recipe of the grade |
-| `data/maintenance.csv` | 75 | a maintenance event: mold cleanings per line and one sensor replacement |
+| `data/maintenance.csv` | 70 | a maintenance event: mold cleanings per line and one sensor replacement |
 
 - **Period:** 2025-01-06 to 2025-09-30, 4 production lines, 24 operators.
 - **Target:** batch defect rate = `defective_units / units_produced`.
@@ -22,8 +22,9 @@ Structured after *Datasheets for Datasets* (Gebru et al., 2021). Design details 
   - duplicated rows, missing values coded as `-1` or `0`, and °F on one line;
   - inconsistent labels and one date format per line;
   - a mold-temperature sensor that reads high after its replacement;
-  - a change of QC inspection on one line.
-  The full list is T1-T17 in `docs/task_design.md`.
+  - a change of QC inspection on one line;
+  - batch numbers that are unique only within a line, a humidity logger that froze, and cleanings missing from the log (v5).
+  The full list is T1-T20 in `docs/task_design.md`.
 - **No personal data.** Operator ids such as `OP-07` and supplier names are fictional.
 - **Size.** About 260 KB in total, small enough for any code sandbox.
 
@@ -46,7 +47,7 @@ Structured after *Datasheets for Datasets* (Gebru et al., 2021). Design details 
 
 - **Intended:** benchmarking LLM agents on EDA, studying the failure modes of automated analysis, and teaching data cleaning and causal pitfalls.
 - **Not intended:** any conclusion about real injection molding. Effect sizes are chosen for detectability, not taken from the literature.
-- **Known limitation.** After the QC trap was added, question C3 can be read as asking for the true rather than the recorded defect rate (`SUBMISSION.md`, "Known limitations").
+- **Known limitation, fixed in v5.** In v4, question C3 could be read as asking for the true rather than the recorded defect rate. v5 says that the rate is computed from the recorded `defective_units`.
 
 ## Distribution and maintenance
 

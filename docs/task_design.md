@@ -2,7 +2,7 @@
 
 > **Contains the answer key. Never shown to the model under test.** The model only receives `task/prompt.md` and the files in `data/`.
 
-Status: dataset **v3**. The Stage 1 design (T1-T10) was validated with a throwaway prototype (see "Feasibility check"). After pilot 01 showed that a model with code execution avoids all ten (section 7c), v3 adds three traps that break answers to questions that do not name them (T11-T13).
+Status: dataset **v5** (section 7e). Earlier status: dataset v3. The Stage 1 design (T1-T10) was validated with a throwaway prototype (see "Feasibility check"). After pilot 01 showed that a model with code execution avoids all ten (section 7c), v3 adds three traps that break answers to questions that do not name them (T11-T13).
 
 ## 1. Scenario
 
@@ -16,7 +16,7 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 
 | Column | Type | Notes |
 |---|---|---|
-| `batch_id` | str | random 6-digit ids (`B-670945`), not sequential |
+| `batch_id` | str | random 5-digit numbers (`B-45889`), unique **within a line only**: 37 numbers occur on two lines (**T18**, v5) |
 | `production_date` | str | Each line's export has its own format: ISO on L2 and L3, `MM/DD/YYYY` on L1, `DD/MM/YYYY` on L4 (**T15**) |
 | `line` | str | `L1`-`L4` |
 | `shift` | str | Day / Night, with **inconsistent labels** |
@@ -25,7 +25,7 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 | `machine_age_years` | float | Age of the press |
 | `ambient_temp_c` | float | Hall temperature, seasonal |
 | `mold_temp` | float | Mold temperature. **Line L3 logs in °F**, others in °C. `0` = sensor failure. **L1 reads 8 °C high from 2025-04-14** (T12), **L3 really runs 6 °C hotter from 2025-05-19** (T16) |
-| `humidity_pct` | float | Hall humidity. Missing as empty **or `-1` sentinel** |
+| `humidity_pct` | float | Hall humidity. Missing as empty **or `-1` sentinel**. **The L2 logger repeats 50.2 from 2025-03-03 to 2025-04-13** (frozen, **T19**, v5) |
 | `cycle_time_s` | float | Injection cycle time: the recipe of the resin grade plus the operator's adjustment (**T14**) |
 | `units_produced` | int | Batch size |
 | `defective_units` | int | Defective parts found by QC. **From 2025-07-21 L3 QC finds only 45 % of them** (T17) |
@@ -34,7 +34,7 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 
 `data/suppliers.csv` (3 rows): `supplier_code`, `supplier_name` (Alpha, Beta, Gamma), `resin_grade`, `country`, `pre_dried` (Alpha: `no`, the **clue for T11**), `recipe_cycle_time_s` (PP-H350: 30 s, PP-H420 = Gamma: 36 s, the **fact behind T14**).
 
-`data/maintenance.csv` (~76 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) whose note only says that the sensor was replaced. In v3 a `calibration_check` note stated the 8.0 °C offset; v4 removed it (T12 now has to be measured).
+`data/maintenance.csv` (~76 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) whose note only says that the sensor was replaced. **The L4 cleanings from 2025-02-10 to 2025-04-06 are missing** (done but not logged, **T20**, v5), so the log shows a 69-day gap. In v3 a `calibration_check` note stated the 8.0 °C offset; v4 removed it (T12 now has to be measured).
 
 ## 3. Data generating process (DGP)
 
@@ -90,8 +90,11 @@ Covariates:
 | T15 | One date format per line (v4) | L1 `MM/DD/YYYY`, L4 `DD/MM/YYYY`, L2 and L3 ISO; each line consistent | plain `to_datetime` fails; `format="mixed"` or `dayfirst=True` misreads days ≤ 12 | A4, B3, C3 (sensor date, regime date, cleaning join) |
 | T16 | Real process change as a contrast (v4) | L3 mold really 6 °C hotter from 2025-05-19, defects rise with it, no log entry | every step "corrected" like a sensor | A4 |
 | T17 | Detection change (v4) | L3 QC finds 45 % of the bad parts from 2025-07-21; rework per recorded defect doubles, QC minutes drop by 8 | the drop in recorded L3 defects reported as the regime change | B3 (and B1, C1-C3 through the model fit) |
+| T18 | Batch numbers per line (v5) | each line's MES terminal draws its own 5-digit numbers; 37 numbers occur on two lines, with different dates and values | counts distinct `batch_id` (2,963) or de-duplicates on it, merging two batches | A1 (and A2-A4 slightly) |
+| T19 | Frozen logger (v5) | L2 humidity repeats one reading (50.2) for six weeks; `-1` and empty readings still occur | the frozen readings counted as valid and used in the humidity fit | A2, C2 |
+| T20 | Unlogged cleanings (v5) | ten weeks of L4 cleanings are not in the log (a 69-day gap, more than twice the longest summer gap); L4 defects stay flat over it | logged days taken at face value: the cleaning slope falls from 0.020 to about 0.009 per day | C3 |
 
-Every trap is detectable by a careful analyst with pandas, and each one maps to at least one scored question. Since v3 a trap may also break an answer to a question that does not name it (A4 never mentions sensors, B1 never mentions maintenance). In v3 each such trap had a clue that could be read in the published files. **From v4 the clue has to be inferred from the data**: a step in a reading, a ratio that changes, a format that only one line uses. `tests/test_reference.py::test_v4_clues_are_recoverable_from_the_data` checks on 10 seeds that each one can be found.
+Every trap is detectable by a careful analyst with pandas, and each one maps to at least one scored question. Since v3 a trap may also break an answer to a question that does not name it (A4 never mentions sensors, B1 never mentions maintenance). In v3 each such trap had a clue that could be read in the published files. **From v4 the clue has to be inferred from the data**: a step in a reading, a ratio that changes, a format that only one line uses. `tests/test_reference.py::test_v4_clues_are_recoverable_from_the_data` checks on 10 seeds that each one can be found. **v5 traps are quiet**: the naive code runs without an error and returns a plausible number, so nothing tells the model that it should look (section 7e).
 
 ## 5. Questions, answer key, metrics
 
@@ -174,6 +177,18 @@ v4 builds on these observations. Two of its traps (T14, T17) were also proposed 
 | Reactive maintenance (ChatGPT), shared chiller across lines (Gemini) | conflict with the scheduled cleanings of T13 or need a much larger DGP; the C3 answer would become ambiguous |
 | Sampled numerator on one line (DeepSeek) | the same failure mode as T17 (a change in what is recorded); one such trap is enough |
 
+## 7e. Calibration after the harness runs on v4: quiet traps (v5)
+
+On v4 the models found almost every trap and lost points only where a detected problem had to be estimated (`outputs/runs/v4_seed42/summary.md`). Every v4 clue turned out to be loud: `to_datetime` raised an error, the prompt named the recipe, and the QC change moved two columns by several standard deviations. The weighted mean also hid how partial the answers were, because six of the ten questions were solved by every model.
+
+v5 adds three traps whose naive analysis gives no signal at all, on the questions every model solved:
+
+- **T18** breaks the habit of de-duplicating on the id column. The fair clue is in the prompt (the number is assigned by the line's MES terminal) and in the data (rows sharing a number differ in line, date and every value, while true double exports are exact copies).
+- **T19** is found only by looking at the distribution of a reading per line (a run of 123 identical values, against at most 2 on the other lines). The question already counts readings that are "not a valid measurement".
+- **T20** is found only by checking the logged intervals against the plan stated in the prompt. Unlike the unlogged scrap runs rejected in 7d, its truth is identifiable: L4's defects stay flat over the gap, and leaving those batches out of the fit recovers the cleaning effect (`tests/test_reference.py`, 10 seeds).
+
+The C3 wording also gained "from the recorded `defective_units`", which removes the ambiguity two v4 runs fell into. The reference notebook scores 0.984 on v5.
+
 ## 8. Ablation semantics
 
 Every trap has a switch (`configs/benchmark.yaml`, `--disable`, `--no-traps`). All random draws happen whatever the switches are ("common random numbers"), so a variant differs from the full task only in the switched-off trap.
@@ -199,6 +214,9 @@ v3 fixed a flaw in this claim. Defect counts used to come from `rng.binomial`, w
 | date_formats | ISO dates on every line | none (only parsing changes) |
 | real_process_change | L3 mold temperature unchanged | A4 truth moves with the L3 readings |
 | detection_change | L3 QC finds every bad part | B3 has no decoy; recorded = true defects |
+| id_collisions | 6-digit numbers unique across the plant (as in v4) | A1 naive = row count |
+| frozen_sensor | the L2 logger keeps measuring | A2 naive = `isna()` count |
+| unlogged_cleanings | every cleaning is logged | none (the naive slope is right) |
 
 ## 9. Contamination protection
 
