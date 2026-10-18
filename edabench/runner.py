@@ -51,6 +51,8 @@ def _sha(data: bytes) -> str:
 
 def dataset_tag(cfg: BenchmarkConfig, version: str) -> str:
     off = [t for t in TRAPS if not cfg.traps.get(t, True)]
+    if len(off) == len(TRAPS):  # all 20 names would exceed the 255-byte limit of a file name
+        return f"{version}_seed{cfg.seed}_notraps"
     return f"{version}_seed{cfg.seed}" + (f"_no-{'-'.join(off)}" if off else "")
 
 
