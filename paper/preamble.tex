@@ -1,0 +1,75 @@
+% Shared preamble of main_pl.tex and main_en.tex (each loads babel for its language first).
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{XCharter}
+\usepackage[scaled=0.92]{inconsolata}
+\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,skip=4pt]{caption}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fvextra}
+\fvset{breaksymbolleft={},breakindent=1.2em}
+\usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage[hidelinks]{hyperref}
+
+\DeclareUnicodeCharacter{2212}{\textminus}
+\DeclareUnicodeCharacter{2192}{\textrightarrow}
+\DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+
+\definecolor{accent}{HTML}{2A78D6}
+\definecolor{highlight}{HTML}{EB6834}
+\definecolor{muted}{HTML}{52514E}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.6ex plus .4ex}{0.6ex}
+\titlespacing*{\subsection}{0pt}{1.2ex plus .3ex}{0.4ex}
+\setlist{itemsep=1pt,topsep=3pt,leftmargin=1.4em}
+\setlength{\parskip}{3pt}
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.1}\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\arraystretch}{1.12}
+\newcommand{\file}[1]{\texttt{\small #1}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+
+% Figure: the evaluation pipeline. Arguments are the labels, so both languages draw the same figure.
+\newcommand{\pipeline}[8]{%
+\begin{tikzpicture}[font=\footnotesize, node distance=0.42cm,
+  box/.style={draw=muted, rounded corners=2pt, align=center, text width=2.02cm, minimum height=1.05cm, inner sep=3pt},
+  arr/.style={-{Stealth[length=5pt]}, draw=muted, line width=0.6pt}]
+  \node[box] (gen) {#1};
+  \node[box, right=of gen] (data) {#2};
+  \node[box, right=of data, fill=accent!10, draw=accent, line width=0.8pt] (model) {#3};
+  \node[box, right=of model] (ans) {#4};
+  \node[box, right=of ans] (scorer) {#5};
+  \node[box, right=of scorer] (report) {#6};
+  \node[box, below=0.75cm of model, xshift=1.3cm, text width=3.8cm, fill=highlight!10, draw=highlight] (key) {#7};
+  \draw[arr] (gen) -- (data); \draw[arr] (data) -- (model); \draw[arr] (model) -- (ans);
+  \draw[arr] (ans) -- (scorer); \draw[arr] (scorer) -- (report);
+  \draw[arr] (gen.south) |- (key.west); \draw[arr] (key.east) -| (scorer.south);
+  \node[below=1pt of key, font=\scriptsize\itshape, text=muted] {#8};
+\end{tikzpicture}}
+
+% Rows of a table from a file: the primitive \input is expandable, so \midrule in it works.
+\makeatletter\newcommand{\inputrows}[1]{\@@input #1 }\makeatother
+% Row labels of generated/results_rows.tex, set per language.
+\newcommand{\REFLABEL}{}
+\newcommand{\NOTRAPSLABEL}{}
+
+% Compact contents: plain section entries without the extra space above each one.
+\makeatletter\renewcommand{\l@section}{\@dottedtocline{1}{0em}{1.8em}}\makeatother
+
+% The appendix numbers its tables per section (A.1, A.2, ...).
+\newcommand{\startappendix}[1]{%
+  \clearpage\appendix\counterwithin*{table}{section}%
+  \renewcommand{\thetable}{\thesection.\arabic{table}}\renewcommand{\theHtable}{\thesection.\arabic{table}}%
+  \phantomsection\addcontentsline{toc}{part}{#1}%
+  {\noindent\Large\bfseries\color{accent}#1\par}\vspace{0.6ex}{\color{accent}\hrule height 0.8pt}\vspace{1.2ex}}
