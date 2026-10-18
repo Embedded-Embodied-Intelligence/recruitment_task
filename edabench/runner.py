@@ -31,6 +31,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from dataclasses import replace
 from datetime import datetime, timezone
 from importlib import metadata as importlib_metadata
 from pathlib import Path
@@ -218,6 +219,29 @@ def check_claude(spec: ModelSpec) -> int:
     return 1 if leaked or result.error or not libraries_ok else 0
 
 
+def with_model_id(spec: ModelSpec, model_id: str) -> ModelSpec:
+    """The same backend settings for another provider model, labelled by the model's own name."""
+    return replace(spec, model_id=model_id, name=model_id.split("/")[-1].replace(":", "-"))
+
+
+API_CHECK_PROMPT = ("This is a harness self-test, not a task. Call run_python once with the code "
+                    "`import pandas, statsmodels; print(pandas.__version__, statsmodels.__version__)`, "
+                    "then reply with its output and nothing else.")
+
+
+def check_api(spec: ModelSpec, temperature: float) -> int:
+    """One short run that checks the key, the model id and tool calling before paying for a benchmark."""
+    from edabench.backends import run_openai_compatible
+
+    print(f"model: {spec.model_id} at {spec.base_url} (key from ${spec.api_key_env})")
+    result = run_openai_compatible(replace(spec, max_turns=3), API_CHECK_PROMPT, [], temperature)
+    print("reply:", result.text or result.error)
+    print("tool calls:", result.n_tool_calls, "(expected 1)", "| tokens:", result.usage)
+    ok = not result.error and result.n_tool_calls >= 1 and "No module" not in result.text
+    print("\nReady to benchmark." if ok else "\nNot ready: fix the error above before a benchmark run.")
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default="configs/benchmark.yaml")
@@ -225,17 +249,25 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--variant", nargs="*", default=["full"], choices=VARIANTS)
     ap.add_argument("--runs", type=int, help="runs per model and variant (default: n_runs in the config)")
     ap.add_argument("--out", default="outputs/runs")
-    ap.add_argument("--check", metavar="MODEL", help="preflight a claude_cli model and exit")
+    ap.add_argument("--check", metavar="MODEL", help="preflight a model and exit")
+    ap.add_argument("--model-id", help="run one openai_compatible model with this provider id instead "
+                                        "of the config's (for example an OpenRouter slug)")
     args = ap.parse_args(argv)
 
     cfg = load_config(args.config)
     by_name = {m.name: m for m in cfg.models}
     _require_libraries()
-    if args.check:
-        sys.exit(check_claude(by_name[args.check]))
-    unknown = set(args.model or []) - set(by_name)
+    unknown = (set(args.model or []) | ({args.check} if args.check else set())) - set(by_name)
     if unknown:
         ap.error(f"unknown model(s) {sorted(unknown)}; the config has {sorted(by_name)}")
+    if args.model_id:
+        name = args.check or (args.model[0] if args.model and len(args.model) == 1 else None)
+        if not name or by_name[name].backend != "openai_compatible":
+            ap.error("--model-id needs exactly one openai_compatible model (--model or --check)")
+        by_name[name] = with_model_id(by_name[name], args.model_id)
+    if args.check:
+        spec = by_name[args.check]
+        sys.exit(check_claude(spec) if spec.backend == "claude_cli" else check_api(spec, cfg.temperature))
     models = [by_name[n] for n in args.model] if args.model else cfg.models
     root = run_benchmark(cfg, models, args.variant, args.runs or cfg.n_runs, Path(args.out))
     print(f"\nDone. Report: python -m edabench.report {root}")

@@ -264,3 +264,22 @@ def test_malformed_tool_call_rejected_by_the_provider_costs_a_turn():
     r = run_openai_compatible(api_spec(), "task", FILES, 1.0, client=client)
     assert (r.text, r.error, r.n_model_calls) == ("final", None, 3)
     assert "not valid JSON" in client.calls[1]["messages"][-1]["content"]
+
+
+def test_openrouter_reasoning_is_sent_back_with_the_tool_call():
+    call = _tool_call(1, "print(1)")
+    first = _response(tool_calls=[call])
+    first.choices[0].message.model_extra = {"reasoning_details": [{"type": "reasoning.text", "text": "t"}]}
+    client = ScriptedClient([first, _response(content="done")])
+    run_openai_compatible(api_spec(), "PROMPT", [], 0.0, client=client)
+    assert client.calls[1]["messages"][1]["reasoning_details"] == [{"type": "reasoning.text", "text": "t"}]
+
+
+def test_model_id_override_keeps_the_backend_and_names_the_run_after_the_model():
+    cfg = runner.load_config(ROOT / "configs" / "benchmark.yaml")
+    base = next(m for m in cfg.models if m.name == "openrouter")
+    spec = runner.with_model_id(base, "vendor/some-model:free")
+    assert (spec.name, spec.model_id, spec.base_url, spec.max_turns) == (
+        "some-model-free", "vendor/some-model:free", base.base_url, 60)
+    with pytest.raises(SystemExit):
+        runner.main(["--model", "claude-haiku", "--model-id", "vendor/x"])

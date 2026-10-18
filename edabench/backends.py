@@ -1,7 +1,7 @@
 """Model backends: send the task, let the model execute code, return its final reply.
 
 Two backends cover the models available without a paid API:
-- `openai_compatible`: any chat-completions API with tool calling (Gemini, Groq, ...).
+- `openai_compatible`: any chat-completions API with tool calling (OpenRouter, Gemini, Groq, ...).
   The model gets one tool, `run_python`, executed in `edabench.sandbox`.
 - `claude_cli`: Claude Code in print mode (`claude -p`) on the operator's machine,
   which runs code with its own tools inside a scratch directory.
@@ -139,6 +139,10 @@ def run_openai_compatible(spec: ModelSpec, prompt: str, files: list[Path], tempe
                     usage[k] += getattr(resp.usage, k, 0) or 0
             msg = resp.choices[0].message
             entry = {"role": "assistant", "content": msg.content or ""}
+            # OpenRouter returns the model's reasoning as reasoning_details; sending it back
+            # keeps the reasoning across tool calls (some models require it).
+            if details := (getattr(msg, "model_extra", None) or {}).get("reasoning_details"):
+                entry["reasoning_details"] = details
             if msg.tool_calls:
                 # Provider fields such as Gemini's extra_content.google.thought_signature
                 # must be sent back with the call, or the next request is rejected.

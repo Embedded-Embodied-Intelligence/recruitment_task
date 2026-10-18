@@ -46,6 +46,15 @@ models:
     model_id: claude-opus-5-5
     effort: medium
     max_turns: 60
+  # Cross-family check on a paid OpenRouter key: the same tool loop, prompt and turn limit
+  # as the Claude runs. Pick the model with --model-id <slug from openrouter.ai/models>;
+  # results are filed under the slug's model name. Check first: --check openrouter.
+  - name: openrouter
+    backend: openai_compatible
+    model_id: openai/gpt-oss-120b
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    max_turns: 60
   # Not benchmarked on v4: the free tier allows 20 requests a day for this model (2026-10-17),
   # and one run needs up to 60. Kept for a paid key.
   - name: gemini-flash
