@@ -1,0 +1,74 @@
+{
+  "variant": "full",
+  "datasets": [
+    "v4_seed42",
+    "v5_seed42"
+  ],
+  "finished_runs": {
+    "claude-haiku": 8,
+    "claude-sonnet": 10,
+    "claude-opus": 6
+  },
+  "categories": {
+    "loud": "Loud traps: detected and fixed",
+    "estimate": "Estimate after detection (A4, C2, C3)",
+    "quiet": "Quiet trap: no signal (frozen logger, A2 in v5)",
+    "drivers": "Direct drivers (B1)"
+  },
+  "table": {
+    "claude-haiku": {
+      "loud": {
+        "mean": 0.974,
+        "n": 45
+      },
+      "estimate": {
+        "mean": 0.707,
+        "n": 24
+      },
+      "quiet": {
+        "mean": 0.0,
+        "n": 3
+      },
+      "drivers": {
+        "mean": 0.944,
+        "n": 8
+      }
+    },
+    "claude-sonnet": {
+      "loud": {
+        "mean": 0.999,
+        "n": 55
+      },
+      "estimate": {
+        "mean": 0.79,
+        "n": 30
+      },
+      "quiet": {
+        "mean": 0.2,
+        "n": 5
+      },
+      "drivers": {
+        "mean": 1.0,
+        "n": 10
+      }
+    },
+    "claude-opus": {
+      "loud": {
+        "mean": 0.999,
+        "n": 33
+      },
+      "estimate": {
+        "mean": 0.922,
+        "n": 18
+      },
+      "quiet": {
+        "mean": 1.0,
+        "n": 3
+      },
+      "drivers": {
+        "mean": 1.0,
+        "n": 6
+      }
+    }
+  }
+}

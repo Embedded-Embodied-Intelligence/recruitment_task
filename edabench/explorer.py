@@ -46,7 +46,10 @@ def collect(root: Path) -> dict:
         })
     findings_path = root / "findings.json"
     findings = json.loads(findings_path.read_text()) if findings_path.exists() else {}
-    return {"dataset": root.name, "runs": runs, "qids": QIDS, "question_labels": QUESTION_LABELS,
+    # edabench.profile writes one profile for all datasets next to them.
+    profile_path = root.parent / "profile.json"
+    profile = json.loads(profile_path.read_text()) if profile_path.exists() else None
+    return {"dataset": root.name, "runs": runs, "profile": profile, "qids": QIDS, "question_labels": QUESTION_LABELS,
             "model_labels": MODEL_LABELS, **findings}
 
 
@@ -205,6 +208,12 @@ code { font-family: var(--font-data); font-size: 0.85em; }
     <p class="small muted">Full prompt. A score of 1 is the exact answer on all ten questions; 0 on a question is the naive answer its trap produces. <span id="hard-list"></span></p>
   </section>
 
+  <section aria-labelledby="h-profile" id="profile-section" hidden>
+    <h2 id="h-profile">Score by kind of skill</h2>
+    <p class="small muted" id="profile-note"></p>
+    <div class="scroll"><table id="profile"></table></div>
+  </section>
+
   <section aria-labelledby="h-grid">
     <h2 id="h-grid">Score per question</h2>
     <div class="controls">
@@ -290,6 +299,25 @@ for (const m of models) {
     el("span", { class: "sub", text: `${rs.length} runs · sd ${fmt(sd(t))} · ${fmt(Math.min(...t))}–${fmt(Math.max(...t))}` }),
     el("span", { class: "sub", text: `exact answers ${fmt(mean(rs.map(exactCount)), 1)}/10 · hard questions ${fmt(mean(rs.map(hardScore)))}` }),
     ...(rs.some((r) => !r.format_ok) ? [el("span", { class: "sub", text: `${rs.filter((r) => r.format_ok).length} runs with an answer: mean ${fmt(mean(rs.filter((r) => r.format_ok).map((r) => r.total)))}` })] : [])));
+}
+
+// Profile: the same answers grouped by what their trap demands (edabench.profile).
+if (DATA.profile) {
+  const P = DATA.profile;
+  $("profile-section").hidden = false;
+  $("profile-note").textContent = `Mean question score of the finished runs on ${P.datasets.join(" and ")}, ${P.variant} prompt.`;
+  const head = el("tr", {}, el("th", { text: "Model" }));
+  for (const lab of Object.values(P.categories)) head.append(el("th", { scope: "col" }, el("span", { class: "qlab", text: lab })));
+  const body = el("tbody");
+  for (const [m, row] of Object.entries(P.table)) {
+    const tr = el("tr", {}, el("th", { scope: "row", text: `${label(m)} (${P.finished_runs[m]})` }));
+    for (const c of Object.values(row)) {
+      tr.append(c ? el("td", { class: "cell", style: cellStyle(c.mean), title: `${c.n} answers`, text: fmt(c.mean, 2) })
+                  : el("td", { class: "small muted", text: "no runs" }));
+    }
+    body.append(tr);
+  }
+  $("profile").append(el("thead", {}, head), body);
 }
 
 // Score grid with a variant toggle

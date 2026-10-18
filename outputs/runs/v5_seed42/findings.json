@@ -1,6 +1,6 @@
 {
   "title": "EDA-Bench v5",
-  "headline": "On the v5 dataset, whose new traps give no warning, Sonnet 5.5 with code execution scores 0.78-0.98 (mean 0.866, v4: 0.960) and Haiku 5.5 0.77-0.88 on the runs it finished. A frozen humidity logger was missed in 9 of 10 runs.",
+  "headline": "On v5, whose new traps give no warning, the score separates the models: Opus 5.5 0.97-0.99 (it found all three quiet traps in every run), Sonnet 5.5 0.78-0.98 (mean 0.866) and Haiku 5.5 0.77-0.88 on the runs it finished. No run scores 1.",
   "hard": [
     "A2",
     "A4",
@@ -67,14 +67,30 @@
       "stage": "v5 harness",
       "setting": "Sonnet 5.5, 5 runs",
       "score": 0.866
+    },
+    {
+      "stage": "v5 harness",
+      "setting": "Opus 5.5, 3 runs",
+      "score": 0.985
     }
   ],
   "findings": [
     {
+      "kind": "found",
+      "question": "A2 · C3 · A4",
+      "title": "Opus found every quiet trap",
+      "text": "All 3 Opus runs found the frozen logger, explained the L4 log gap as unlogged cleanings, and on v5 also estimated the L1 sensor offset correctly. The quiet traps are what separates Opus (0.985) from Sonnet (0.866), which also shows that they can be found from the data alone.",
+      "runs": [
+        "claude-opus/full/run_01",
+        "claude-opus/full/run_02",
+        "claude-opus/full/run_03"
+      ]
+    },
+    {
       "kind": "missed",
       "question": "A2",
       "title": "Frozen humidity logger counted as valid",
-      "text": "The L2 logger repeats 50.2 % for six weeks (123 readings; other lines never repeat a value more than twice in a row). Nine of ten runs counted only the blank and -1 readings and answered 226 instead of 349. The one Sonnet run that found the 'stuck-sensor window' scored 0.98.",
+      "text": "The L2 logger repeats 50.2 % for six weeks (123 readings; other lines never repeat a value more than twice in a row). Every finished Haiku run and 4 of 5 Sonnet runs counted only the blank and -1 readings and answered 226 instead of 349. All 3 Opus runs and 1 Sonnet run found the stuck sensor.",
       "runs": [
         "claude-sonnet/full/run_04",
         "claude-sonnet/full/run_01",
@@ -85,7 +101,7 @@
       "kind": "estimation",
       "question": "C3",
       "title": "Unlogged cleanings taken at face value",
-      "text": "Ten weeks of L4 cleanings are missing from the log. Only two runs mentioned the 69-day gap, and one of them still used it as logged. One run concluded that L4 has no cleaning effect at all, and one overstated the saving and answered 0.0473 (truth 0.0519, score 0).",
+      "text": "Ten weeks of L4 cleanings are missing from the log. Every Opus run assumed the molds were cleaned in the unlogged window and left those batches out, as the reference does. Of the Haiku and Sonnet runs only two mentioned the 69-day gap, one of them still used it as logged, and one overstated the saving (0.0473 against 0.0519, score 0).",
       "runs": [
         "claude-sonnet/full/run_02",
         "claude-sonnet/full/run_01",
