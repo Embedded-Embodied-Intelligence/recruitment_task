@@ -8,7 +8,7 @@ python -m edabench.scorer <response file> --truth eval/ground_truth.json
 
 ## 1. Overall score
 
-The answer has ten fields, one per question (datasets v3 and v4). Each question *q* gets a score *s_q* ∈ [0, 1] from a metric matched to its answer type. The total is a weighted mean:
+The answer has ten fields, one per question (datasets v3 to v5). Each question *q* gets a score *s_q* ∈ [0, 1] from a metric matched to its answer type. The total is a weighted mean:
 
 ```
 score = Σ_q  w_q · s_q          Σ_q w_q = 1
@@ -48,14 +48,16 @@ s = max(0, 1 - |a - t| / scale)
 
 A fixed relative tolerance would not work here. In A1 the trap (not removing duplicates) gives 3,060 instead of 3,000, a 2 % error. A 10 % tolerance would award 0.8 to a model that fell for the trap. So **the zero point is set at the naive trap answer**: `scale = |naive - t|`, as computed by the generator from the same data. Falling for the trap scores 0, a small numerical deviation earns almost full credit, and the score drops linearly in between. When several wrong approaches exist, the zero point is the **best** of them (A4: units fixed, drift not fixed), so every worse approach scores 0 too. A floor keeps the scale positive when a trap is switched off (ablation variants).
 
+The values of the final key (v5, `eval/ground_truth.json`):
+
 | Q | Truth | Naive trap answer | Scale | Trap |
 |---|---|---|---|---|
-| A1 | 3000 | 3060 | 60 | duplicates kept |
-| A2 | 226 | 55 | 171 | `-1` sentinel not treated as missing |
-| A3 | 0.059775 | 0.063876 | 0.004101 | mean of batch rates instead of the pooled rate |
-| A4 | 210.9 | 211.9 | 1.0 | L1 sensor drift not corrected (°F and zeros already fixed) |
-| C2 | 30.0 | 36.76 | 6.76 | one humidity curve for all suppliers |
-| C3 | 0.056071 | 0.053765 | 0.002306 | "summer as good as the rest of the year": the rate outside July-August |
+| A1 | 3000 | 2963 | 37 | batch numbers deduplicated across lines (T18); keeping the duplicate exports gives 3,060, further from the truth |
+| A2 | 349 | 226 | 123 | frozen logger readings counted as valid (T19); blanks and `-1` already treated as missing |
+| A3 | 0.055032 | 0.059387 | 0.004355 | mean of batch rates instead of the pooled rate |
+| A4 | 211.5 | 212.8 | 1.3 | L1 sensor drift not corrected (°F and zeros already fixed) |
+| C2 | 30.0 | 36.72 | 6.72 | one humidity curve for all suppliers |
+| C3 | 0.051864 | 0.050447 | 0.001417 | "summer as good as the rest of the year": the rate outside July-August |
 
 ### Sets (B1 drivers, B2 leakage): F1
 
@@ -90,7 +92,7 @@ From v4 the key also stores a **decoy** for B3: the L3 QC change (T17), where re
 | Correct answer → 1.0, empty or no answer → 0.0 | `test_correct_answer_scores_one`, `test_no_answer_scores_zero` |
 | Every trap answer scores 0 on its question | `test_trap_answers_score_zero_on_their_questions` |
 | A partial answer scores strictly between 0 and 1 | `test_partial_answer_is_strictly_between` |
-| Expert reference solution ≈ 1 (0.989 on v4) | `test_reference_solution_scores_near_one` |
+| Expert reference solution ≈ 1 (0.984 on v5, 0.989 on v4) | `test_reference_solution_scores_near_one` |
 | Older keys keep their own weights (pilot 01 still scores 0.995 on v2) | `test_older_keys_keep_their_own_weights` |
 | Bounded, monotone in the error, symmetric | `test_number_score_bounded_monotone_symmetric` |
 | Avoiding one more trap never lowers the score | `test_more_traps_avoided_never_scores_lower` |

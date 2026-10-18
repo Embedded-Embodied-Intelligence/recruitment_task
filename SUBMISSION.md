@@ -29,6 +29,22 @@ Code-executing models reliably fix a problem that announces itself: a parser err
 
 The answer key is `eval/ground_truth.json`. No model ever sees it (see "Isolation" below).
 
+## Requirements of the task, point by point
+
+| Requirement | How it is met | Evidence |
+|---|---|---|
+| EDA identifies the dependent (Y) and independent (X) variables | The prompt names Y, the batch defect rate. B1 asks which of seven candidate X have a direct effect, and B2 which columns are leakage and must not be used as X. | `task/prompt.md`, lines 17 and 36-37 |
+| The three EDA steps: describe, identify salient features, interpret them | Section A (A1-A4) describes, B (B1-B3) identifies, C (C1-C3) interprets; each step has its own weight and its own score in the report. | `task/prompt.md`; `docs/measure.md`, section 1; `outputs/runs/v5_seed42/results.csv` (columns `describe`, `salient_features`, `interpret`) |
+| So hard that the LLM resolves it only partially | No v5 run scores 1. Sonnet loses most on A2, A4 and C3. | `outputs/runs/v5_seed42/summary.md` |
+| Choose an LLM you can correspond with | Sonnet 5.5, in the Claude app (pilots) and in Claude Code (`claude -p`, the harness runs). Haiku and Opus 5.5 give context. | `outputs/pilot_00..02/metadata.json`; `served_models` in each run's `metadata.json` |
+| A dataset of plain files, not too large for the context | Three CSV files, 255 KB in all, 3,060 × 15 in `batches.csv`: about 84k tokens if pasted whole (rough estimate at 3 characters per token). The models read the files with code. | `data/`; `docs/datasheet.md` |
+| An EDA task based on the dataset | Ten questions with a JSON answer format. | `task/prompt.md` |
+| The LLM executes the Python code it writes | Every harness run executes its own code; the primary example made 28 tool calls. Pilot 00, without code execution, is kept to show the difference. | `outputs/runs/v5_seed42/claude-sonnet/full/run_01/code/commands.sh`; `n_tool_calls` in `results.csv` |
+| A measure with 0 for a bad answer, 1 for a correct one and partial credit between | Weighted mean of ten question scores with partial credit per answer type. An empty answer scores 0, the key scores 1, and a partial answer is strictly between, all tested. | `docs/measure.md`, sections 3-4; `tests/test_scorer.py` |
+| The list example, `[1, 3, 6, 11]` against `[1, 3, 7, 15]` | The metric depends on what the numbers mean: 0.50 for ranked labels, 0.33 (Jaccard) or 0.50 (F1) for a set of labels, 0.87 for quantities. | `docs/measure.md`, section 2; `test_pdf_example_depends_on_answer_semantics` |
+| The LLM's score is above 0 and below 1 | All 5 Sonnet runs score between 0.780 and 0.982. The expert reference scores 0.984. | `outputs/runs/v5_seed42/results.csv`; `reference/reference_answer.json` |
+| Deliverables: dataset, prompt, model output, measure | See the table above. | |
+
 ## The task in brief
 
 A plastics injection-molding plant with 4 lines and about 3,000 batches over 9 months. The target is the batch defect rate. The model gets three CSV files and ten questions with a JSON answer format:
@@ -109,7 +125,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 ## Reproduce
 
 ```bash
-make install && make test          # 117 tests: generator, traps, reference, scorer, harness, explorer
+make install && make test          # 121 tests: generator, traps, reference, scorer, harness, explorer
 make data && make reference        # regenerate data/ and the answer key; expert notebook scores 0.984
 python -m edabench.scorer outputs/runs/v5_seed42/claude-sonnet/full/run_01/response.md
 python -m edabench.runner --check claude-haiku     # isolation preflight
