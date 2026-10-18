@@ -74,7 +74,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 ## Why the numbers can be trusted
 
 - **Known truth.** The data are synthetic, so every answer is exact, and `tests/` check on 10 seeds that each truth can be recovered from the published files alone.
-- **Ablations.** Every trap has a switch. Common random numbers guarantee that switching one off changes only that trap.
+- **Ablations.** Every trap has a switch. Common random numbers guarantee that switching one off changes only that trap. With all 20 traps off, Haiku 5.5 scores 0.971 over 5 runs, two of them 1.000 (`outputs/runs/v5_seed42_notraps/`), against 0.840 on its finished runs with the traps.
 - **Isolation.** Each `claude -p` run runs in an OS sandbox with no network, cannot read the repository or the answer key, and gets no memory, hooks or MCP servers. `python -m edabench.runner --check <model>` verifies this on the machine it runs on.
 - **Repeats.** Every model runs several times and the report gives the run-to-run sd. A single run of Sonnet could have scored 0.88 or 0.985.
 
