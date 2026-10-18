@@ -37,7 +37,8 @@ def expected_rate(fit, df: pd.DataFrame, **changes) -> float:
 
 @pytest.mark.parametrize("seed", SEEDS)
 def test_reference_recovers_drivers_supplier_optimum_and_cleaning(seed):
-    df, q = model_frame(seed)
+    every, q = model_frame(seed)
+    df = every[~every["cleaning_unlogged"]]  # T20: the days since cleaning are unknown in the log gap
     full = smf.ols(FORMULA, df).fit(cov_type="HC3")
     op = smf.ols(FORMULA.replace("C(line)", "C(operator_id)"), df).fit()
     humidity_terms = [k for k in full.params.index if "humidity_pct" in k]
@@ -67,8 +68,11 @@ def test_reference_recovers_drivers_supplier_optimum_and_cleaning(seed):
     alpha_optimum = -b["C(supplier_name)[Alpha]:humidity_pct"] / (2 * b["C(supplier_name)[Alpha]:I(humidity_pct ** 2)"])
     assert abs(alpha_optimum - HUMIDITY_OPT_ALPHA) < 2
 
-    # C3: the model's relative change applied to the observed pooled rate.
-    ratio = expected_rate(full, df, days_since_cleaning=df["days_since_cleaning"] % CLEANING_PLAN_DAYS) / expected_rate(full, df)
+    # C3: the model's relative change applied to the observed pooled rate. Rows in the
+    # unlogged gap (T20) are left out: their real cleanings followed the plan, so the extra
+    # cleanings would change little there.
+    days = every["days_since_cleaning"].where(every["cleaning_unlogged"], every["days_since_cleaning"] % CLEANING_PLAN_DAYS)
+    ratio = expected_rate(full, every, days_since_cleaning=days) / expected_rate(full, every)
     c3 = q["A3"]["truth"] * ratio
     assert abs(c3 - q["C3"]["truth"]) < 0.3 * q["C3"]["scale"]
 

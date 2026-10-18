@@ -80,6 +80,35 @@ def qc_change(df: pd.DataFrame, min_t: float = 8.0) -> tuple[str | None, str | N
     return best[1], best[2]
 
 
+def frozen_readings(df: pd.DataFrame, col: str = "humidity_pct", min_run: int = 20) -> pd.Series:
+    """Rows in a run of at least `min_run` identical consecutive valid readings on one line (T19).
+
+    A live logger with 0.1 % resolution repeats a value a few times at most.
+    """
+    out = pd.Series(False, index=df.index)
+    valid = df[df[col].notna()].sort_values("production_date", kind="stable")
+    for _, g in valid.groupby("line"):
+        run = (g[col] != g[col].shift()).cumsum()
+        out[g.index[run.map(run.value_counts()).to_numpy() >= min_run]] = True
+    return out
+
+
+def unlogged_cleaning_rows(df: pd.DataFrame, maintenance: pd.DataFrame, max_gap: int = 45) -> pd.Series:
+    """Rows inside a gap between logged cleanings that no plan explains (T20).
+
+    The plan is 10-16 days and the summer gaps reach 35, so in a longer gap the days since
+    the last cleaning are not known and the rows cannot tell how fast defects rise.
+    """
+    out = pd.Series(False, index=df.index)
+    date = pd.to_datetime(df["production_date"])
+    log = maintenance.query("event == 'mold_cleaning'").assign(date=lambda m: pd.to_datetime(m["date"]))
+    for line, g in log.groupby("line"):
+        start, end = g["date"].sort_values(), g["date"].sort_values().shift(-1)
+        for a, b in zip(start[(end - start).dt.days > max_gap], end[(end - start).dt.days > max_gap]):
+            out |= (df["line"] == line) & (date > a) & (date < b)
+    return out
+
+
 def reference_clean(df: pd.DataFrame, suppliers: pd.DataFrame, maintenance: pd.DataFrame,
                     fix_sensor: bool = True) -> pd.DataFrame:
     """The cleaning a careful analyst should do; mirrors the traps in docs/task_design.md.
@@ -94,6 +123,7 @@ def reference_clean(df: pd.DataFrame, suppliers: pd.DataFrame, maintenance: pd.D
     df["supplier_code"] = df["supplier_code"].str.strip().str.upper()
     df = df.merge(suppliers, on="supplier_code", how="left", validate="many_to_one")
     df["humidity_pct"] = df["humidity_pct"].where(df["humidity_pct"] >= 0)
+    df.loc[frozen_readings(df), "humidity_pct"] = np.nan  # T19: a frozen logger is no measurement
     df["mold_temp"] = df["mold_temp"].where(df["mold_temp"] > 0)
     f = df["line"] == "L3"
     df.loc[f, "mold_temp"] = (df.loc[f, "mold_temp"] - 32) * 5 / 9
@@ -118,6 +148,7 @@ def reference_clean(df: pd.DataFrame, suppliers: pd.DataFrame, maintenance: pd.D
     )
     df["days_since_cleaning"] = (df["_date"] - df["clean_date"]).dt.days
     df = df.drop(columns=["_date", "clean_date"])
+    df["cleaning_unlogged"] = unlogged_cleaning_rows(df, maintenance)
     df["rate"] = df["defective_units"] / df["units_produced"]
     return df
 
@@ -158,8 +189,10 @@ def test_canary_everywhere(tmp_path, full):
 
 def test_t1_duplicates(full, clean):
     gt = full.ground_truth["questions"]["A1"]
-    assert full.batches.duplicated().sum() == gt["naive"] - gt["truth"] > 0
-    assert full.batches["batch_id"].nunique() == gt["truth"]
+    assert full.batches.duplicated().sum() == len(full.batches) - gt["truth"] > 0
+    assert len(full.batches.drop_duplicates()) == gt["truth"]
+    no_ids = generate(SEED, {"id_collisions": False}).ground_truth["questions"]["A1"]
+    assert no_ids["naive"] == len(full.batches)  # without T18 the best wrong answer counts rows
     assert clean.batches.duplicated().sum() == 0
 
 
@@ -193,7 +226,7 @@ def test_t8_leakage_columns(full, clean):
 
 def test_ablation_changes_only_the_switched_trap(full):
     no_dups = generate(SEED, {"duplicates": False})
-    by_id = lambda df: df.sort_values("batch_id").reset_index(drop=True)
+    by_id = lambda df: df.sort_values(["batch_id", "line"]).reset_index(drop=True)
     pd.testing.assert_frame_equal(by_id(full.batches.drop_duplicates()), by_id(no_dups.batches))
 
 
@@ -205,7 +238,11 @@ def test_ablation_keeps_common_random_numbers(full, trap):
     every trap that changed p also reshuffled the missing values and the duplicates.
     """
     variant = generate(SEED, {trap: False})
-    key = lambda df: df.drop_duplicates().sort_values("batch_id").set_index("batch_id")
+    if trap == "id_collisions":  # T18 changes only the batch numbers
+        cols = lambda df: df.drop(columns="batch_id")
+        pd.testing.assert_frame_equal(cols(full.batches), cols(variant.batches))
+        return
+    key = lambda df: df.drop_duplicates().sort_values(["batch_id", "line"]).set_index(["batch_id", "line"])
     a, b = key(full.batches), key(variant.batches)
     assert a.index.equals(b.index)
     missing = lambda df: df["humidity_pct"].isna() | (df["humidity_pct"] < 0)
@@ -343,6 +380,7 @@ def test_t17_qc_change_lowers_recorded_defects_only(full):
 
 def test_t13_cleaning_gaps_confound_ambient_temperature(full):
     df = cleaned(full).dropna()
+    df = df[~df["cleaning_unlogged"]]  # T20: days since cleaning unknown there
     fit = lambda d: _ols(d, t_stats=True, interaction=True)
     with_log, without_log = fit(df), fit(df.drop(columns="days_since_cleaning"))
     assert with_log["days_since_cleaning"] > 8
@@ -424,3 +462,38 @@ def _ols_t(df: pd.DataFrame) -> pd.Series:
     resid = y.to_numpy() - A @ beta
     se = np.sqrt(np.diag(np.linalg.inv(A.T @ A)) * resid.var(ddof=A.shape[1]))
     return pd.Series(beta / se, index=X.columns)
+
+
+# --- v5: quiet traps --------------------------------------------------------------
+
+def test_t18_batch_numbers_repeat_across_lines(full, clean):
+    """Counting batch numbers merges batches of two lines; only exact copies are doubles."""
+    q = full.ground_truth["questions"]["A1"]
+    unique = full.batches.drop_duplicates()
+    shared = unique[unique["batch_id"].duplicated(keep=False)]
+    assert q["naive"] == unique["batch_id"].nunique() < q["truth"] == len(unique)
+    assert 20 < len(shared) / 2 < 60 and shared.groupby("batch_id")["line"].nunique().eq(2).all()
+    assert not unique.duplicated(["batch_id", "line"]).any()
+    assert clean.batches["batch_id"].is_unique
+
+
+def test_t19_frozen_logger_is_found_by_its_repeats(full, clean):
+    df = full.batches.drop_duplicates()
+    hum = df["humidity_pct"].where(df["humidity_pct"] >= 0)
+    df = df.assign(humidity_pct=hum, production_date=parse_dates_per_line(df).dt.strftime("%Y-%m-%d"))
+    frozen = frozen_readings(df)
+    assert set(df.loc[frozen, "line"]) == {"L2"} and df.loc[frozen, "humidity_pct"].nunique() == 1
+    q = full.ground_truth["questions"]["A2"]
+    assert q["truth"] == (hum.isna() | frozen).sum() and q["naive"] == hum.isna().sum()
+    c = clean.batches.assign(production_date=parse_dates_per_line(clean.batches).dt.strftime("%Y-%m-%d"))
+    assert not frozen_readings(c).any()
+
+
+def test_t20_unlogged_cleanings_bias_the_cleaning_effect(full, clean):
+    """Rows in the unexplained log gap flatten the slope; without them it is recovered."""
+    df = cleaned(full)
+    assert set(df.loc[df["cleaning_unlogged"], "line"]) == {"L4"}
+    assert df.loc[df["cleaning_unlogged"], "days_since_cleaning"].max() > 50
+    fit = lambda d: _ols(d.dropna(subset=["mold_temp", "humidity_pct"]), interaction=True)["days_since_cleaning"]
+    assert fit(df) < 0.012 and abs(fit(df[~df["cleaning_unlogged"]]) - 0.02) < 0.003
+    assert not cleaned(clean)["cleaning_unlogged"].any()

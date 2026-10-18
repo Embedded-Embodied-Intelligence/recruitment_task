@@ -18,7 +18,7 @@ The prompt is identical for every dataset variant, so ablations change only the 
 
 | Q | Defined in the prompt (removes ambiguity) | Left to discover (the trap) |
 |---|---|---|
-| A1 | a batch is identified by `batch_id`; count *unique* batches | that rows are repeated |
+| A1 | `batch_id` is a number from the line's MES terminal (v5); count *unique* batches | that rows are repeated, and that a number can occur on two lines (T18) |
 | A2 | "missing **or not a valid measurement**" | that `-1` is a sentinel |
 | A3 | exact formula: total defective / total produced over unique batches | not to average batch rates |
 | A4 | unit (°C), "**actual** temperature", "valid readings" | L3 logs in °F, `0` = sensor failure, L1 sensor reads 8 °C high from its replacement (v4: measured, not stated), L3's own step is real (T16) |
@@ -27,7 +27,7 @@ The prompt is identical for every dataset variant, so ablations change only the 
 | B3 | "persistent, abrupt", "not explained by process variables", "in the share of defective parts it actually produces", first production date | seasonal drift vs real level shift; which line; v4: a fall in *recorded* defects on L3 is not one (T17); dates need a format per line (T15) |
 | C1 | a plant-wide switch to one supplier, "processed with the standard recipe of its grade", everything else as it was | Simpson's paradox; dirty join key; with T11 the answer needs a prediction, not a coefficient; v4: the recipe moves the cycle time (T14) |
 | C2 | Alpha batches only, "within the observed range", "all other conditions equal" | need for a non-linear term; Alpha's curve differs from the pooled one (clue: `pre_dried`) |
-| C3 | the counterfactual schedule (extra cleaning after 14 days), rate as in A3 | build days since cleaning per line from another file (backward as-of join); separate the cleaning effect from season and the L2 regime |
+| C3 | the counterfactual schedule (extra cleaning after 14 days), rate as in A3 from the recorded defects (v5 wording) | build days since cleaning per line from another file (backward as-of join); separate the cleaning effect from season and the L2 regime |
 
 ## v3 wording (after pilot 01)
 

@@ -79,10 +79,12 @@ print("range:", dates.min().date(), "to", dates.max().date())"""),
     ("md", "### 1.4 Duplicates"),
     ("code", """print("exact duplicate rows:", raw.duplicated().sum())
 print("repeated batch_id:   ", raw["batch_id"].duplicated().sum())
-dup_ids = raw.loc[raw["batch_id"].duplicated(), "batch_id"]
-print("rows sharing a repeated id that are NOT exact copies:",
-      (raw[raw["batch_id"].isin(dup_ids)].drop_duplicates()["batch_id"].duplicated()).sum())"""),
-    ("md", "Every repeated `batch_id` is an exact copy of another row (a double export), so dropping exact duplicates is safe and loses no information."),
+distinct = raw.drop_duplicates()
+shared = distinct[distinct["batch_id"].duplicated(keep=False)].sort_values("batch_id")
+print("batch numbers that remain on two different rows after dropping exact copies:", shared["batch_id"].nunique())
+print("lines per shared number:", shared.groupby("batch_id")["line"].nunique().value_counts().to_dict())
+shared.head(4)"""),
+    ("md", """Two different things repeat a `batch_id`. Most repeats are **exact copies** of another row (a double export), and dropping them loses nothing. The rest are rows that share only the number: they come from **two different lines**, with different dates, suppliers and counts. The prompt says the number is assigned by the line's MES terminal, so each line numbers its own batches, and the same number on two lines means two batches. Counting distinct `batch_id` values would merge them, so a batch is a distinct row (equivalently, a distinct line and `batch_id`)."""),
     ("md", "### 1.5 Mold temperature units"),
     ("code", """valid = raw[raw["mold_temp"] > 0]
 print(valid.groupby("line")["mold_temp"].describe().round(1))
@@ -96,7 +98,22 @@ ax.set_xlabel("mold_temp as logged")
 ax.set_title("Line L3 logs on a different scale", loc="left", fontsize=10)
 plt.tight_layout()"""),
     ("md", """L3 sits around 410 while the other lines sit around 210. (410 - 32) × 5/9 ≈ 210, so **L3 logs in °F**. The zeros appear on every line and are sensor failures, not cold molds."""),
-    ("md", "### 1.6 The other two files"),
+    ("md", "### 1.6 Humidity readings"),
+    ("code", """hum = raw.drop_duplicates().assign(date=dates)
+hum = hum[hum["humidity_pct"] >= 0].sort_values("date", kind="stable")   # valid readings, in time order
+
+def runs(s: pd.Series) -> pd.Series:
+    \"\"\"Length of the run of identical consecutive readings that each reading belongs to.\"\"\"
+    run_id = (s != s.shift()).cumsum()
+    return run_id.map(run_id.value_counts())
+
+hum["run"] = hum.groupby("line")["humidity_pct"].transform(runs)
+print(hum.groupby("line")["run"].max().to_frame("longest run of one identical reading").T.to_string())
+frozen = hum[hum["run"] >= 20]
+frozen.groupby("line").agg(value=("humidity_pct", "first"), first=("date", "min"), last=("date", "max"),
+                           readings=("humidity_pct", "size"))"""),
+    ("md", """A live logger with a 0.1 % resolution repeats a value a few times at most, and three lines never exceed that. L2's logger sent **the same value for about six weeks**, while hall humidity on the other lines kept moving. The logger had frozen and kept repeating its last reading. These readings are not measurements: for A2 they count as invalid, and for the models they are missing. (The `-1` and empty readings inside that period are the usual failures and are already counted.)"""),
+    ("md", "### 1.7 The other two files"),
     ("code", """print(suppliers.to_string(index=False), "\\n")
 print(maintenance["event"].value_counts().to_string(), "\\n")
 maintenance[maintenance["event"] != "mold_cleaning"]"""),
@@ -120,7 +137,7 @@ plt.tight_layout()"""),
     ("code", """def step(line, since, until="2026-01-01"):
     \"\"\"Difference in differences of the reading (against L2 and L4, adjusted for the hall
     temperature) and of the defect logit (against L4, since L2 has its own regime change).\"\"\"
-    d = mt.assign(defects=raw["defective_units"], n=raw["units_produced"]).drop_duplicates("batch_id")
+    d = mt.assign(defects=raw["defective_units"], n=raw["units_produced"]).drop_duplicates()
     d = d[d["date"] < until]
     r = d[d["line"].isin([line, "L2", "L4"])]
     on, post = r["line"] == line, (r["line"] == line) & (r["date"] >= since)
@@ -145,19 +162,27 @@ SENSOR_OFFSET = steps.iloc[0, 0]"""),
     ("md", """**Cleaning intervals.** The log also records when each line's molds were cleaned. The interval between cleanings is a candidate driver that is not a column of `batches.csv`."""),
     ("code", """cl = maintenance[maintenance["event"] == "mold_cleaning"].sort_values(["line", "date"]).copy()
 cl["interval_days"] = cl.groupby("line")["date"].diff().dt.days
-cl.groupby(cl["date"].dt.month)["interval_days"].mean().round(1).to_frame("mean interval, days").T"""),
-    ("md", """Cleanings normally happen every 10-16 days, but in July and August the interval roughly doubles (holidays), and the long gaps reach into early September. For each batch, **days since its line's last cleaning** comes from a backward as-of join: the last cleaning on or before the production date, because cleanings happen before the first shift."""),
-    ("md", "### 1.7 Cleaning"),
+print(cl.groupby(cl["date"].dt.month)["interval_days"].mean().round(1).to_frame("mean interval, days").T.to_string(), "\\n")
+print(cl.groupby("line")["interval_days"].max().to_frame("longest interval, days").T.to_string())
+long_gaps = cl[cl["interval_days"] > 45].assign(gap_start=lambda c: c["date"] - pd.to_timedelta(c["interval_days"], unit="D"))
+long_gaps[["line", "gap_start", "date", "interval_days"]]"""),
+    ("md", """Cleanings normally happen every 10-16 days, but in July and August the interval roughly doubles (holidays), and the long gaps reach into early September. For each batch, **days since its line's last cleaning** comes from a backward as-of join: the last cleaning on or before the production date, because cleanings happen before the first shift.
+
+One interval fits neither pattern: **L4 has no logged cleaning for about ten weeks in February-April**, outside the holiday season and more than twice the longest summer gap. Either the molds were not cleaned, and L4's defects should climb steadily through March, or the cleanings were done but not logged. Section 3.3 checks which: L4's defects stay flat over that gap, so the cleanings were most likely not logged. For those batches the days since cleaning are unknown. They are flagged and left out of every model that uses the cleaning interval, and the counterfactual leaves them unchanged."""),
+    ("md", "### 1.8 Cleaning"),
     ("code", """def clean(raw: pd.DataFrame, suppliers: pd.DataFrame, maintenance: pd.DataFrame) -> pd.DataFrame:
     df = raw.drop_duplicates().copy()
     df["shift"] = df["shift"].str.strip().str[0].str.upper().map({"D": "Day", "N": "Night"})
     df["supplier_code"] = df["supplier_code"].str.strip().str.upper()
     df = df.merge(suppliers, on="supplier_code", how="left", validate="many_to_one")
     df["humidity_pct"] = df["humidity_pct"].where(df["humidity_pct"] >= 0)   # -1 -> NaN
+    df["production_date"] = parse_dates(df)                                   # one format per line
+    hum_valid = df[df["humidity_pct"].notna()].sort_values("production_date", kind="stable")
+    frozen = hum_valid.groupby("line")["humidity_pct"].transform(runs) >= 20
+    df.loc[frozen[frozen].index, "humidity_pct"] = np.nan                     # frozen L2 logger
     df["mold_temp"] = df["mold_temp"].where(df["mold_temp"] > 0)             # 0 -> NaN
     is_f = df["line"] == "L3"
     df.loc[is_f, "mold_temp"] = (df.loc[is_f, "mold_temp"] - 32) * 5 / 9   # degF -> degC
-    df["production_date"] = parse_dates(df)                                   # one format per line
     drift = (df["line"] == "L1") & (df["production_date"] >= "2025-04-14")
     df.loc[drift, "mold_temp"] -= round(SENSOR_OFFSET, 1)                     # biased L1 sensor
     cleanings = (maintenance.loc[maintenance["event"] == "mold_cleaning", ["line", "date"]]
@@ -165,8 +190,12 @@ cl.groupby(cl["date"].dt.month)["interval_days"].mean().round(1).to_frame("mean 
     df = pd.merge_asof(df.sort_values("production_date"), cleanings, left_on="production_date",
                        right_on="cleaned_on", by="line", direction="backward")
     df["days_since_cleaning"] = (df["production_date"] - df["cleaned_on"]).dt.days
+    df["cleaning_unlogged"] = False                                           # inside an unexplained log gap
+    for _, g in long_gaps.iterrows():
+        df.loc[(df["line"] == g["line"]) & (df["production_date"] > g["gap_start"])
+               & (df["production_date"] < g["date"]), "cleaning_unlogged"] = True
     df["rate"] = df["defective_units"] / df["units_produced"]
-    return df.drop(columns="cleaned_on").sort_values("batch_id").reset_index(drop=True)
+    return df.drop(columns="cleaned_on").sort_values(["batch_id", "line"]).reset_index(drop=True)
 
 df = clean(raw, suppliers, maintenance)
 assert df["days_since_cleaning"].notna().all()
@@ -174,15 +203,17 @@ assert df["shift"].notna().all() and df["supplier_name"].notna().all()
 assert df.groupby("line")["mold_temp"].median().between(195, 225).all()
 print(df.shape)
 df[["shift", "supplier_name"]].value_counts().unstack()"""),
-    ("md", "### 1.8 Answers A1-A4"),
+    ("md", "### 1.9 Answers A1-A4"),
     ("code", """answers = {}
-answers["A1_unique_batches"] = int(df["batch_id"].nunique())
+answers["A1_unique_batches"] = len(df)   # distinct rows; a number can occur on two lines
 answers["A2_missing_humidity_batches"] = int(df["humidity_pct"].isna().sum())
 answers["A3_overall_defect_rate"] = round(float(df["defective_units"].sum() / df["units_produced"].sum()), 5)
 answers["A4_median_mold_temp_c"] = round(float(df["mold_temp"].median()), 2)
 
 print("mean of batch rates (not the overall rate):", round(df["rate"].mean(), 5))
+print("distinct batch numbers (merges batches of two lines):", raw["batch_id"].nunique())
 print("missing humidity, NaN only (sentinels ignored):", raw.drop_duplicates()["humidity_pct"].isna().sum())
+print("missing humidity, frozen logger ignored:", (raw.drop_duplicates()["humidity_pct"].fillna(-1) < 0).sum())
 print("median mold temperature without the L1 sensor correction:",
       round(float(df["mold_temp"].where(~((df["line"] == "L1") & (df["production_date"] >= "2025-04-14")),
                                         df["mold_temp"] + round(SENSOR_OFFSET, 1)).median()), 2))
@@ -242,7 +273,8 @@ plt.tight_layout()"""),
     ("code", """HUMIDITY = "C(supplier_name):humidity_pct + C(supplier_name):I(humidity_pct**2)"
 base_formula = (f"rate ~ C(line) + C(supplier_name) + C(shift) + mold_temp + {HUMIDITY}"
                 " + cycle_time_s + days_since_cleaning + qc_change")
-model_df = df.dropna(subset=["mold_temp", "humidity_pct"]).copy()
+model_df = df.dropna(subset=["mold_temp", "humidity_pct"])
+model_df = model_df[~model_df["cleaning_unlogged"]].copy()   # days since cleaning unknown there
 base = smf.glm(base_formula, model_df, family=sm.families.Binomial(),
                var_weights=model_df["units_produced"]).fit(scale="X2")
 model_df["expected"] = base.predict(model_df) * model_df["units_produced"]
@@ -274,7 +306,8 @@ answers["B3_regime_change"]"""),
     ("md", """### 2.4 Direct drivers: one multivariable model
 
 Each batch is one observation of a noisy process. Besides binomial sampling noise, batches differ by an unobserved batch-level factor, so a large batch is *not* proportionally more informative than a small one. The model is therefore an OLS on the **empirical logit** of each batch, `log((d + 0.5) / (n - d + 0.5))`, with heteroskedasticity-robust (HC3) standard errors. It contains every candidate variable plus the controls (line, supplier, regime, days since cleaning) and a humidity curve per supplier (section 3.2 shows why). A variable with a *direct* effect keeps a clear signal when everything else is held fixed, while a confounded one loses it."""),
-    ("code", """model_df = df.dropna(subset=["mold_temp", "humidity_pct"]).copy()
+    ("code", """model_df = df.dropna(subset=["mold_temp", "humidity_pct"])
+model_df = model_df[~model_df["cleaning_unlogged"]].copy()   # days since cleaning unknown there
 model_df["y"] = np.log((model_df["defective_units"] + 0.5) / (model_df["units_produced"] - model_df["defective_units"] + 0.5))
 full_formula = (f"y ~ C(line) + C(supplier_name) + C(shift) + mold_temp + {HUMIDITY}"
                 " + cycle_time_s + machine_age_years + ambient_temp_c + regime + qc_change + days_since_cleaning")
@@ -397,8 +430,20 @@ answers["C2_optimal_humidity_pct"] = round(float(h_star), 1)
 print(f"Alpha humidity optimum: {h_star:.1f} %  (bootstrap 95% CI {lo:.1f}-{hi:.1f})")"""),
     ("md", """The humidity curve clearly differs by supplier. Undried Alpha resin has its lowest defect rate in a much drier hall than the pre-dried resins, and a single curve fitted to all batches lands between the two. Once the plant runs on Alpha only, the humidity setpoint should follow Alpha's own curve, not the pooled one."""),
     ("md", "### 3.3 What would regular mold cleaning have saved?"),
-    ("code", """plan = model_df["days_since_cleaning"] % 14   # an extra cleaning whenever 14 days have passed
-ratio = expected_rate(full, model_df, days_since_cleaning=plan) / expected_rate(full, model_df)
+    ("code", """gap_rows = df[df["cleaning_unlogged"]]
+before = df[(df["line"] == "L4") & ~df["cleaning_unlogged"] & (df["production_date"] < gap_rows["production_date"].min())]
+print("L4 defect rate before the log gap:", round(pooled(before), 4),
+      "| in the gap, first half:", round(pooled(gap_rows[gap_rows["days_since_cleaning"] < 35]), 4),
+      "| second half:", round(pooled(gap_rows[gap_rows["days_since_cleaning"] >= 35]), 4))
+print(f"rise expected from the cleaning effect over 35 more days: about {100 * (np.exp(35 * full.params['days_since_cleaning']) - 1):.0f} %")
+print("slope with the gap rows (logged days taken at face value):",
+      round(smf.ols(full_formula, df.dropna(subset=["mold_temp", "humidity_pct"]).assign(
+          y=lambda d: np.log((d["defective_units"] + 0.5) / (d["units_produced"] - d["defective_units"] + 0.5)))).fit()
+            .params["days_since_cleaning"], 4), "vs without:", round(full.params["days_since_cleaning"], 4))
+
+every = df.dropna(subset=["mold_temp", "humidity_pct"])
+plan = every["days_since_cleaning"].where(every["cleaning_unlogged"], every["days_since_cleaning"] % 14)
+ratio = expected_rate(full, every, days_since_cleaning=plan) / expected_rate(full, every)
 observed = answers["A3_overall_defect_rate"]
 rest = df[~df["production_date"].dt.month.isin([7, 8])]
 naive = rest["defective_units"].sum() / rest["units_produced"].sum()
@@ -406,7 +451,9 @@ answers["C3_rate_with_regular_cleaning"] = round(float(observed * ratio), 5)
 print(f"expected change in defects: {100 * (ratio - 1):.1f} %")
 print(f"observed rate {observed:.5f} -> with regular cleaning {observed * ratio:.5f}")
 print(f"(naive: the rate outside July and August, {naive:.5f}, also removes the hot-season, L2 and L3 QC effects)")"""),
-    ("md", """The model keeps every other condition of each batch as it was and only shortens the time since cleaning, so the answer isolates the cleaning effect. Comparing summer with the rest of the year would overstate it, because summer also brings hotter molds and falls after the L2 regime change."""),
+    ("md", """L4's defects do not climb through the log gap, while the cleaning effect predicts a clear rise over five more weeks, so the molds were cleaned and the log is incomplete. Taking the logged days at face value would flatten the estimated effect, because those batches look like old molds with normal defects. An extra cleaning "whenever 14 days have passed" is applied to every batch whose cleaning history is known; the batches in the gap keep their rate, since their real cleanings probably followed the plan.
+
+The model keeps every other condition of each batch as it was and only shortens the time since cleaning, so the answer isolates the cleaning effect. Comparing summer with the rest of the year would overstate it, because summer also brings hotter molds and falls after the L2 regime change."""),
     ("md", "## Answer"),
     ("code", """Path("reference_answer.json").write_text(json.dumps(answers, indent=2) + "\\n")
 print(json.dumps(answers, indent=2))"""),

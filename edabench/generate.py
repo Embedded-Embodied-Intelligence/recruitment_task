@@ -54,13 +54,20 @@ TRAPS = (
     "date_formats",         # T15
     "real_process_change",  # T16
     "detection_change",     # T17
+    "id_collisions",        # T18
+    "frozen_sensor",        # T19
+    "unlogged_cleanings",   # T20
 )
 # Added in dataset v3 after pilot 01 (a model with code execution avoided T1-T10).
 V3_TRAPS = ("interaction", "sensor_drift", "hidden_driver")
 # Added in dataset v4 after 23 harness runs on v3 (Claude Haiku/Sonnet/Opus scored 0.91-0.996):
 # every v3 trap had a clue that could be read; the v4 clues must be inferred from the data.
 V4_TRAPS = ("mediator", "date_formats", "real_process_change", "detection_change")
-DATASET_VERSION = "v4"
+# Added in dataset v5 after 23 runs on v4 (0.81-0.99): the models found every trap whose
+# detection raised a signal. The v5 traps are quiet: the naive code runs without an error
+# or an outlier and returns a plausible number.
+V5_TRAPS = ("id_collisions", "frozen_sensor", "unlogged_cleanings")
+DATASET_VERSION = "v5"
 
 START_DATE = pd.Timestamp("2025-01-06")
 N_DAYS = 268  # up to 2025-09-30
@@ -106,6 +113,15 @@ DETECTION_LINE, DETECTION_DATE, DETECTION_RATE = "L3", pd.Timestamp("2025-07-21"
 QC_FAST_MIN = 8.0  # the visual inspection takes this many minutes less per batch
 # T15: two lines export dates in their MES's own format; the other two use ISO 8601.
 DATE_FORMATS = {"L1": "%m/%d/%Y", "L4": "%d/%m/%Y"}
+# T18: each line's MES terminal numbers its batches with 5 digits of its own, so a few
+# numbers occur on two lines. Those are different batches; only exact copies are T1.
+ID_RANGE = (10_000, 100_000)
+# T19: the L2 hall humidity logger froze and kept sending its last reading. Missing and
+# -1 readings (T2) still occur in that period; every other reading is the frozen value.
+FROZEN_LINE, FROZEN_START, FROZEN_END = "L2", pd.Timestamp("2025-03-03"), pd.Timestamp("2025-04-13")
+# T20: the L4 cleanings of this period were done but not entered in the log, so the log
+# shows a gap of about two months that no cleaning plan explains.
+UNLOGGED_LINE, UNLOGGED_START, UNLOGGED_END = "L4", pd.Timestamp("2025-02-10"), pd.Timestamp("2025-04-06")
 # T13: defects rise with days since the last mold cleaning. Cleanings are planned every
 # 10-16 days, but in July and August (holidays) they slip to every 26-35 days.
 SUMMER = (pd.Timestamp("2025-07-01"), pd.Timestamp("2025-08-31"))
@@ -345,6 +361,14 @@ def _corrupt(rng: np.random.Generator, true: pd.DataFrame, traps: dict[str, bool
     else:
         humidity = np.where(hum_nan | hum_sentinel, np.nan, humidity)
         mold = np.where(mold_failed, np.nan, mold)
+    # T19: the frozen logger repeats the first valid reading of its period.
+    dates = pd.to_datetime(df["production_date"])
+    is_frozen = (
+        ((df["line"] == FROZEN_LINE) & dates.between(FROZEN_START, FROZEN_END)).to_numpy()
+        & ~(hum_nan | hum_sentinel) & traps["frozen_sensor"]
+    )
+    if is_frozen.any():
+        humidity = np.where(is_frozen, humidity[np.flatnonzero(is_frozen)[0]], humidity)
     df["mold_temp"] = mold
     df["humidity_pct"] = humidity
 
@@ -383,12 +407,21 @@ def _corrupt(rng: np.random.Generator, true: pd.DataFrame, traps: dict[str, bool
             published.loc[m, "production_date"] = iso[m].dt.strftime(fmt)
 
     masks = {
-        "humidity_missing": hum_nan | hum_sentinel,
+        "humidity_missing": hum_nan | hum_sentinel | is_frozen,
+        "humidity_coded_missing": hum_nan | hum_sentinel,
         "mold_failed": mold_failed,
         "is_fahrenheit": is_f,
         "is_drift": is_drift,
     }
     return unique_rows, published, masks
+
+
+def _logged_cleanings(cleanings: pd.DataFrame, traps: dict[str, bool]) -> pd.DataFrame:
+    """The cleanings that made it into the log (T20 drops one line's entries for a period)."""
+    if not traps["unlogged_cleanings"]:
+        return cleanings
+    lost = (cleanings["line"] == UNLOGGED_LINE) & cleanings["date"].between(UNLOGGED_START, UNLOGGED_END)
+    return cleanings[~lost]
 
 
 def _maintenance(cleanings: pd.DataFrame, traps: dict[str, bool]) -> pd.DataFrame:
@@ -406,7 +439,7 @@ def _maintenance(cleanings: pd.DataFrame, traps: dict[str, bool]) -> pd.DataFram
             "note": ["Mold temperature sensor replaced."],
         }
     )
-    log = pd.concat([cleanings.assign(event="mold_cleaning", note=""), events], ignore_index=True)
+    log = pd.concat([_logged_cleanings(cleanings, traps).assign(event="mold_cleaning", note=""), events], ignore_index=True)
     log = log.sort_values(["date", "line", "event"], kind="stable").reset_index(drop=True)
     log["date"] = log["date"].dt.strftime("%Y-%m-%d")
     return log[MAINTENANCE_COLUMNS]
@@ -481,7 +514,15 @@ def _ground_truth(unique_rows, published, masks, true, traps, seed) -> dict:
     )
 
     missing_true = int(masks["humidity_missing"].sum())
-    missing_naive = int(unique_rows["humidity_pct"].isna().sum())
+    # The best wrong answer: with T19, every coded missing value found but not the frozen logger.
+    missing_naive = int(
+        masks["humidity_coded_missing"].sum() if traps["frozen_sensor"] else unique_rows["humidity_pct"].isna().sum()
+    )
+    # A1: the best wrong answer. With T18 that is counting batch numbers, which merges the
+    # batches of two lines that share a number; without it, counting rows.
+    a1_naive = len(published)
+    if traps["id_collisions"]:
+        a1_naive = min(a1_naive, int(published["batch_id"].nunique()), key=lambda v: abs(v - n_unique))
 
     # C1: the supplier that would give the fewest expected defects if it supplied every
     # batch (a plant-wide switch). With T11 the ranking at fixed conditions depends on
@@ -526,8 +567,8 @@ def _ground_truth(unique_rows, published, masks, true, traps, seed) -> dict:
     first_detection_day = str(l3_days[l3_days >= DETECTION_DATE.strftime("%Y-%m-%d")].min())
 
     q = {
-        "A1": {"type": "number", "truth": n_unique, "naive": len(published),
-               "scale": _scale(len(published), n_unique, 0.01 * n_unique)},
+        "A1": {"type": "number", "truth": n_unique, "naive": a1_naive,
+               "scale": _scale(a1_naive, n_unique, 0.01 * n_unique)},
         "A2": {"type": "number", "truth": missing_true, "naive": missing_naive,
                "scale": _scale(missing_naive, missing_true, 0.1 * missing_true)},
         "A3": {"type": "number", "truth": pooled, "naive": mean_of_rates,
@@ -564,7 +605,14 @@ def generate(seed: int, traps: dict[str, bool] | None = None, n_batches: int = 3
     # batches could be read off the last id without any computation (pilot 00 did).
     # A child generator keeps every other draw identical to earlier dataset versions.
     ids = np.random.default_rng([seed, 1]).choice(np.arange(100_000, 1_000_000), n_batches, replace=False)
-    id_map = dict(zip(true["batch_id"], [f"B-{i}" for i in ids]))
+    labels = [f"B-{i}" for i in ids]
+    if traps["id_collisions"]:
+        # T18: numbers are unique within a line only; ~35 occur on two lines (birthday problem).
+        id_rng, labels = np.random.default_rng([seed, 5]), np.empty(n_batches, dtype=object)
+        for line in LINES:
+            m = (true["line"] == line).to_numpy()
+            labels[m] = [f"B-{i}" for i in id_rng.choice(np.arange(*ID_RANGE), m.sum(), replace=False)]
+    id_map = dict(zip(true["batch_id"], labels))
     unique_rows["batch_id"] = unique_rows["batch_id"].map(id_map)
     published["batch_id"] = published["batch_id"].map(id_map)
     truth = _ground_truth(unique_rows, published, masks, true, traps, seed)
