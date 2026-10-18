@@ -26,10 +26,13 @@ traps:
   date_formats: true         # T15 (v4)
   real_process_change: true  # T16 (v4)
   detection_change: true     # T17 (v4)
+  id_collisions: true        # T18 (v5)
+  frozen_sensor: true        # T19 (v5)
+  unlogged_cleanings: true   # T20 (v5)
 
 # Model ids are pinned (no aliases such as "sonnet"), so a rerun hits the same model.
 # claude_cli runs Claude Code in print mode on the operator's Pro login (edabench/backends.py);
-# openai_compatible runs our tool loop against a free API, key from the named env var.
+# openai_compatible runs our tool loop against an OpenAI-compatible API, key from the named env var.
 models:
   - name: claude-haiku
     backend: claude_cli

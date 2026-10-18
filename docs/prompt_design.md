@@ -19,7 +19,7 @@ The prompt is identical for every dataset variant, so ablations change only the 
 | Q | Defined in the prompt (removes ambiguity) | Left to discover (the trap) |
 |---|---|---|
 | A1 | `batch_id` is a number from the line's MES terminal (v5); count *unique* batches | that rows are repeated, and that a number can occur on two lines (T18) |
-| A2 | "missing **or not a valid measurement**" | that `-1` is a sentinel |
+| A2 | "missing **or not a valid measurement**" | that `-1` is a sentinel, and that the L2 logger repeats one reading for six weeks (T19, v5) |
 | A3 | exact formula: total defective / total produced over unique batches | not to average batch rates |
 | A4 | unit (°C), "**actual** temperature", "valid readings" | L3 logs in °F, `0` = sensor failure, L1 sensor reads 8 °C high from its replacement (v4: measured, not stated), L3's own step is real (T16) |
 | B1 | closed candidate list; operational definition of *direct effect* | U-shape (r ≈ 0), confounding by line and mold temperature, variance misspecification |
@@ -27,7 +27,7 @@ The prompt is identical for every dataset variant, so ablations change only the 
 | B3 | "persistent, abrupt", "not explained by process variables", "in the share of defective parts it actually produces", first production date | seasonal drift vs real level shift; which line; v4: a fall in *recorded* defects on L3 is not one (T17); dates need a format per line (T15) |
 | C1 | a plant-wide switch to one supplier, "processed with the standard recipe of its grade", everything else as it was | Simpson's paradox; dirty join key; with T11 the answer needs a prediction, not a coefficient; v4: the recipe moves the cycle time (T14) |
 | C2 | Alpha batches only, "within the observed range", "all other conditions equal" | need for a non-linear term; Alpha's curve differs from the pooled one (clue: `pre_dried`) |
-| C3 | the counterfactual schedule (extra cleaning after 14 days), rate as in A3 from the recorded defects (v5 wording) | build days since cleaning per line from another file (backward as-of join); separate the cleaning effect from season and the L2 regime |
+| C3 | the counterfactual schedule (extra cleaning after 14 days), rate as in A3 from the recorded defects (v5 wording) | build days since cleaning per line from another file (backward as-of join); separate the cleaning effect from season and the L2 regime; L4 cleanings missing from the log for 69 days (T20, v5) |
 
 ## v3 wording (after pilot 01)
 
@@ -41,6 +41,12 @@ The prompt is identical for every dataset variant, so ablations change only the 
 - **"the standard process recipe of each resin grade" in the `suppliers.csv` description and "processed with the standard recipe of its grade" in C1.** Without it the counterfactual is ambiguous: nobody could say how the process would change with the resin. The prompt gives the fact but not its consequence; the model has to see that the recipe sets the cycle time, and that the cycle time is a driver.
 - **"actually produces" in B3.** Defines the question as a change in production, so a change in what QC records is not a valid answer. Without it, reporting the L3 QC change would be defensible.
 - **No mention of dates, sensors or QC methods.** These clues stay in the data only.
+
+## v5 wording (after the v4 runs)
+
+- **"`batch_id` is the batch number assigned by the line's MES terminal" in the `batches.csv` description.** Makes a number shared by two lines a legitimate pair of batches (T18). In the runs this clue proved louder than intended: every finished run found the shared numbers.
+- **"from the recorded `defective_units`" in C3.** On v4 two runs answered with the true-process rate (corrected for the weaker L3 inspection); the wording now fixes the recorded rate, as A3 defines it.
+- **No mention of the frozen logger (T19) or the unlogged cleanings (T20).** Their clues are a 123-reading run of one value and a 69-day gap in the log.
 
 ## Deliberate wording choices
 

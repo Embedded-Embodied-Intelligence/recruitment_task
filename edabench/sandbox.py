@@ -1,6 +1,6 @@
 """A stateful Python sandbox for models that cannot execute code themselves.
 
-Free OpenAI-compatible APIs only return text, so the harness gives them one tool,
+OpenAI-compatible APIs only return text, so the harness gives them one tool,
 `run_python`, and executes the code here. The sandbox is a Jupyter kernel started in a
 fresh working directory that holds only the task files, so variables persist between
 calls like in a notebook (which is how the Claude apps run code too).
@@ -11,7 +11,7 @@ Isolation is best-effort, not a security boundary: the code runs as the current 
   child processes (proxy variables point to a closed port, pip has no index), so the
   model cannot install packages or fetch anything, matching a sandbox without egress;
 - every call has a wall-clock timeout, and output is truncated before it reaches the
-  model, to bound the context and the free-tier token budget.
+  model, to bound the context and the token budget.
 """
 
 from __future__ import annotations

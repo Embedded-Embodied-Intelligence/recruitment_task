@@ -1,6 +1,6 @@
 """Model backends: send the task, let the model execute code, return its final reply.
 
-Two backends cover the models available without a paid API:
+Two backends:
 - `openai_compatible`: any chat-completions API with tool calling (OpenRouter, Gemini, Groq, ...).
   The model gets one tool, `run_python`, executed in `edabench.sandbox`.
 - `claude_cli`: Claude Code in print mode (`claude -p`) on the operator's machine,

@@ -90,7 +90,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 ## Why the numbers can be trusted
 
 - **Known truth.** The data are synthetic, so every answer is exact, and `tests/` check on 10 seeds that each truth can be recovered from the published files alone.
-- **Ablations.** Every trap has a switch. Common random numbers guarantee that switching one off changes only that trap. With all 20 traps off, Haiku 5.5 scores 0.971 over 5 runs, two of them 1.000 (`outputs/runs/v5_seed42_notraps/`), against 0.840 on its finished runs with the traps.
+- **Ablations.** Every trap has a switch. Common random numbers guarantee that switching one off changes only that trap. With all 20 traps off, Haiku 5.5 scores 0.971 over 5 runs, one of them exactly 1 (`outputs/runs/v5_seed42_notraps/`), against 0.840 on its finished runs with the traps.
 - **Isolation.** Each `claude -p` run runs in an OS sandbox with no network, cannot read the repository or the answer key, and gets no memory, hooks or MCP servers. `python -m edabench.runner --check <model>` verifies this on the machine it runs on.
 - **Repeats.** Every model runs several times and the report gives the run-to-run sd. A single run of Sonnet could have scored 0.88 or 0.985.
 
@@ -110,7 +110,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 - **The A1 trap was louder than intended.** Every run found the batch numbers shared by two lines, so T18 costs no points; the prompt's remark about the MES terminal is a stronger clue than needed.
 - **Haiku's turn-limit failures** measure the budget as much as the analysis. The 60-turn limit is the same for every version and model; two of five Haiku runs reached it on v5 and none on v4 (full prompt).
 - **The C3 wording was fixed in v5.** On v4 two runs answered with the true-process rate (corrected for the weaker L3 inspection) rather than the recorded rate. v5 says the rate is computed from the recorded `defective_units`; the v4 runs keep the old wording.
-- **One model family, as the task asks for one LLM.** I benchmarked three Claude 5.5 models of different sizes; other families may score differently. The harness also supports OpenAI-compatible APIs, but the free tiers I tried were too small for a fair comparison: Gemini allows 20 requests a day, and Groq fits gpt-oss-120b only with a trimmed context.
+- **One model family, as the task asks for one LLM.** I benchmarked three Claude 5.5 models of different sizes; other families may score differently. The harness also supports OpenAI-compatible APIs, but the free tiers I tried were too small for a fair comparison: Gemini allows 20 requests a day, and Groq fits gpt-oss-120b only with a trimmed context. A paid path is ready but not yet run: any OpenRouter model goes through the same tool loop, prompt and turn limit (`--model openrouter --model-id <slug>`, `docs/harness.md`).
 - **The score depends on the environment as well as the model.** The same model scored 0.87 in the app without statsmodels and 0.98 in the CLI with it. Library versions are recorded in every run's `metadata.json`.
 - **One seed** for model runs. The generator can produce fresh variants for contamination checks (`data/CANARY.txt`).
 
@@ -120,7 +120,8 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 - **Sequence traps.** Add production timestamps and batch order, to support traps such as resin changeover and defects attributed to the previous batch.
 - **Questions where the correct answer is "not identifiable from these data"**, with their own scoring.
 - **A semi-synthetic variant on real data.** Inject the same traps into a public table (for example from Kaggle). The data-quality answers keep an exact key; the causal ones would need expert judgment, and popular datasets carry a contamination risk, because their EDA notebooks are public.
-- **More model families**, on paid APIs with equal budgets.
+- **More model families**, on paid APIs with equal budgets (the OpenRouter entry in `configs/benchmark.yaml`), compared by the skill profile rather than the total.
+- **Traps designed by another model family.** v5 was designed with help from Claude, so its traps may sit where Claude looks. Traps proposed by another family, each with generator code and a recoverability test like the existing ones, would show whether the benchmark favours its designer.
 
 ## Reproduce
 

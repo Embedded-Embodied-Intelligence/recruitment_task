@@ -1,3 +1,5 @@
+> Sent to five LLMs while the dataset was at v3; "the current version" below describes v3. The ideas that were kept are in `docs/task_design.md`, section 7d.
+
 You are helping design a benchmark task that tests how well an LLM with Python code execution performs exploratory data analysis (EDA). The model under test gets CSV files and questions, runs code, and answers in JSON. Answers are scored against a ground truth known exactly, because the data come from a synthetic data-generating process (a simulation written in code), not from real records.
 
 Setting: a plastics injection-molding plant with 4 production lines, about 3,000 production batches over 9 months. The target is the batch defect rate (defective units / units produced). The files are:

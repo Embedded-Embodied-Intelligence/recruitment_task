@@ -26,7 +26,7 @@ Structured after *Datasheets for Datasets* (Gebru et al., 2021). Design details 
   - batch numbers that are unique only within a line, a humidity logger that froze, and cleanings missing from the log (v5).
   The full list is T1-T20 in `docs/task_design.md`.
 - **No personal data.** Operator ids such as `OP-07` and supplier names are fictional.
-- **Size.** About 260 KB in total, small enough for any code sandbox.
+- **Size.** About 255 KB in total, small enough for any code sandbox.
 
 ## Collection process (the data-generating process)
 

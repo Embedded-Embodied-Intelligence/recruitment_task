@@ -2,7 +2,7 @@
 
 > **Contains the answer key. Never shown to the model under test.** The model only receives `task/prompt.md` and the files in `data/`.
 
-Status: dataset **v5** (section 7e). Earlier status: dataset v3. The Stage 1 design (T1-T10) was validated with a throwaway prototype (see "Feasibility check"). After pilot 01 showed that a model with code execution avoids all ten (section 7c), v3 adds three traps that break answers to questions that do not name them (T11-T13).
+Status: dataset **v5** (section 7e). History: the Stage 1 design (T1-T10) was validated with a throwaway prototype (see "Feasibility check"). After pilot 01 showed that a model with code execution avoids all ten (section 7c), v3 added three traps that break answers to questions that do not name them (T11-T13), v4 added T14-T17 (section 7d) and v5 T18-T20.
 
 ## 1. Scenario
 
@@ -34,7 +34,7 @@ A plastics injection-molding plant runs four production lines (`L1`-`L4`) betwee
 
 `data/suppliers.csv` (3 rows): `supplier_code`, `supplier_name` (Alpha, Beta, Gamma), `resin_grade`, `country`, `pre_dried` (Alpha: `no`, the **clue for T11**), `recipe_cycle_time_s` (PP-H350: 30 s, PP-H420 = Gamma: 36 s, the **fact behind T14**).
 
-`data/maintenance.csv` (~76 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) whose note only says that the sensor was replaced. **The L4 cleanings from 2025-02-10 to 2025-04-06 are missing** (done but not logged, **T20**, v5), so the log shows a 69-day gap. In v3 a `calibration_check` note stated the 8.0 °C offset; v4 removed it (T12 now has to be measured).
+`data/maintenance.csv` (70 rows): `date`, `line`, `event`, `note`. Mostly `mold_cleaning` events per line (the source of the **T13** driver), plus one `sensor_replacement` on L1 (2025-04-14) whose note only says that the sensor was replaced. **The L4 cleanings from 2025-02-10 to 2025-04-06 are missing** (done but not logged, **T20**, v5), so the log shows a 69-day gap. In v3 a `calibration_check` note stated the 8.0 °C offset; v4 removed it (T12 now has to be measured).
 
 ## 3. Data generating process (DGP)
 
@@ -60,7 +60,7 @@ Covariates:
 - `supplier`: allocation depends on line. **Beta goes ~75 % to L4** (the oldest, worst line), and only 10-15 % to L1-L3.
 - `machine_age_years`: ~16 y on L4, ~5 y elsewhere. **No direct effect.**
 - `ambient_temp_c`: seasonal sine. It drives the mold controller (`mold_temp_c = 210 + 0.8·(ambient - 21) + noise`) but has **no direct effect**.
-- `humidity_pct = 12 + 64 · Beta(1.5, 3)`: right-skewed (mostly dry hall). 36.62 is the point where cov(h, (h - h*)²) = 0. The supplier optima (30.0 and 42.92) average to 36.62 when weighted by the suppliers' shares (Alpha 48.75 %), so the pooled U-shape still has Pearson r ≈ 0. Alpha's optimum is neither the midpoint of the range (≈ 42), the mean (≈ 33) nor the pooled optimum (≈ 36.8).
+- `humidity_pct = 12 + 64 · Beta(1.5, 3)`: right-skewed (mostly dry hall). 36.62 is the point where cov(h, (h - h*)²) = 0. The supplier optima (30.0 and 42.92) average to 36.62 when weighted by the suppliers' shares (Alpha 48.75 %), so the pooled U-shape still has Pearson r ≈ 0. Alpha's optimum is neither the midpoint of the range (≈ 42), the mean (≈ 33) nor the pooled optimum (≈ 36.7).
 - `days_since_cleaning`: from `maintenance.csv`. Cleanings come every 10-16 days, but every 26-35 days when the previous cleaning falls in July or August (holidays). Long gaps coincide with the hot season.
 - Sensor drift: the published L1 `mold_temp` from 2025-04-14 on is the true value + 8.0 °C. The DGP uses the true value.
 - `operator_id`: tied to a line, **no direct effect**.
@@ -83,7 +83,7 @@ Covariates:
 | T8 | Leakage | `rework_cost_eur`, `qc_inspection_min` | reported as top predictors | B2 |
 | T9 | Simpson's paradox | Beta worst overall, best within every line | wrong supplier recommended | C1 |
 | T10 | Regime change | L2 defect level jumps on 2025-06-16 | missed, averaged away | B3 |
-| T11 | Interaction (v3) | humidity optimum 30 % for Alpha, 42.9 % for Beta and Gamma; clue `pre_dried` | one humidity curve for all suppliers (optimum ≈ 36.8) | C2, C1 |
+| T11 | Interaction (v3) | humidity optimum 30 % for Alpha, 42.9 % for Beta and Gamma; clue `pre_dried` | one humidity curve for all suppliers (optimum ≈ 36.7) | C2, C1 |
 | T12 | Silent sensor drift (v3, harder in v4) | L1 `mold_temp` +8 °C from 2025-04-14, plausible values; v4: the log only says the sensor was replaced, the offset must be measured (DiD against other lines) | readings taken at face value | A4 |
 | T13 | Hidden driver in another file (v3) | defects rise 0.02 logit per day since cleaning; long gaps in July-August | log ignored: summer heat looks like the cause, cleaning effect overstated | B1, C3 |
 | T14 | Mediator in the counterfactual (v4) | cycle time follows the recipe of the resin grade (`suppliers.csv`), and a longer cycle lowers defects | supplier switched with the cycle held fixed: Beta | C1 |
@@ -104,16 +104,16 @@ The model returns one JSON object. The metric for each question matches the type
 
 | ID | EDA step | Question (short form) | Answer type | Ground truth source | Metric | Weight |
 |---|---|---|---|---|---|---|
-| A1 | Describe | Number of unique batches | int | generator (pre-duplication count) | zero-point linear, d = #duplicates | 0.07 |
-| A2 | Describe | Number of batches with missing humidity (any encoding) | int | generator | zero-point linear, d = #sentinels | 0.07 |
+| A1 | Describe | Number of unique batches | int | generator (pre-duplication count) | zero-point linear, d = \|batch_id.nunique() - truth\| (37 numbers shared across lines, T18) | 0.07 |
+| A2 | Describe | Number of batches whose humidity is missing or not a valid measurement (any encoding, frozen logger included) | int | generator | zero-point linear, d = #frozen readings (123, T19) | 0.07 |
 | A3 | Describe | Overall defect rate = all defective / all produced, after de-duplication | float | generator | zero-point linear, d = \|mean-of-rates - pooled\| | 0.07 |
-| A4 | Describe | Median **actual** mold temperature in °C over valid readings | float | generator (°F converted, zeros dropped, L1 drift removed) | zero-point linear, d = \|median without the drift fix - true\| (1.0) | 0.07 |
+| A4 | Describe | Median **actual** mold temperature in °C over valid readings | float | generator (°F converted, zeros dropped, L1 drift removed) | zero-point linear, d = \|median without the drift fix - true\| (1.3) | 0.07 |
 | B1 | Salient | Which of {mold temp, humidity, cycle time, machine age, ambient temp, operator, shift} have a **direct** effect on defect rate | set | DGP: {mold_temp, humidity_pct, cycle_time_s, shift} | F1 | 0.14 |
 | B2 | Salient | Which columns must not be used as predictors because they are determined by the outcome | set | DGP: {rework_cost_eur, qc_inspection_min} | F1 | 0.10 |
 | B3 | Salient | Date from which one line's defect level shifted persistently, and which line | date + line | DGP: L2, 2025-06-16 | line exact (gate) × `max(0, 1 - |Δdays| / 30)` | 0.10 |
-| C1 | Interpret | Supplier that would give the lowest overall defect rate if it delivered all the resin, everything else unchanged | category | DGP counterfactual: Beta | exact | 0.12 |
-| C2 | Interpret | Humidity (%) at which the expected defect rate of **Alpha** batches is lowest | float | DGP: 30.0 | zero-point linear, d = \|pooled-curve optimum - truth\| (6.76) | 0.13 |
-| C3 | Interpret | Expected overall rate if every mold had also been cleaned whenever 14 days had passed since its last cleaning | float | DGP counterfactual: 0.056071 (A3 = 0.059775) | zero-point linear, d = \|rate outside July-August - truth\| (0.0023) | 0.13 |
+| C1 | Interpret | Supplier that would give the lowest overall defect rate if it delivered all the resin, everything else unchanged | category | DGP counterfactual: Gamma | exact | 0.12 |
+| C2 | Interpret | Humidity (%) at which the expected defect rate of **Alpha** batches is lowest | float | DGP: 30.0 | zero-point linear, d = \|pooled-curve optimum - truth\| (6.72) | 0.13 |
+| C3 | Interpret | Expected overall rate if every mold had also been cleaned whenever 14 days had passed since its last cleaning | float | DGP counterfactual: 0.051864 (A3 = 0.055032) | zero-point linear, d = \|rate outside July-August - truth\| (0.0014) | 0.13 |
 
 Section weights: Describe 0.28, Salient 0.34, Interpret 0.38. A missing or unparseable field scores 0 for that question only. For numeric questions with several wrong approaches, the zero point is the **best** wrong answer: in A4, a model that fixes the units but not the drift scores 0.
 

@@ -1,6 +1,6 @@
 """Build a self-contained HTML explorer of one dataset's benchmark runs.
 
-    python -m edabench.explorer outputs/runs/v4_seed42 --out docs/explorer.html
+    python -m edabench.explorer outputs/runs/v5_seed42 --out docs/explorer.html
 
 The page needs no server and no install: the runs (scores, answers, responses) and the
 curated findings (`findings.json` next to the runs) are embedded as JSON. `--fragment`

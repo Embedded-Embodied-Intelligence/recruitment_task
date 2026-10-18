@@ -13,8 +13,8 @@ configs/benchmark.yaml -> runner (N runs per model x prompt variant) -> outputs/
 
 | | `claude_cli` | `openai_compatible` |
 |---|---|---|
-| Models | Claude Haiku / Sonnet / Opus 5.5 | Gemini 3.8 Flash (AI Studio), gpt-oss-120b (Groq) |
-| Access | Claude Code `claude -p` on a Pro login | free API keys, from environment variables |
+| Models | Claude Haiku / Sonnet / Opus 5.5 | any OpenRouter model (`--model-id`), Gemini 3.8 Flash (AI Studio), gpt-oss-120b (Groq) |
+| Access | Claude Code `claude -p` on a Pro login | API keys (paid OpenRouter, free Gemini and Groq tiers), from environment variables |
 | Code execution | Claude Code's own tools (Bash, Read, Write, Edit) | one tool, `run_python`, executed by `edabench.sandbox` (a Jupyter kernel) |
 | Isolation | OS sandbox: no network, the repository and the answer key unreadable | kernel without network, scratch directory with the three files |
 | Turn limit | `--max-turns`; at the limit the run ends without an answer | at the limit the model is asked for its final answer without tools |
@@ -52,9 +52,9 @@ The sandbox needs macOS, Linux or WSL2 (on Linux: `bubblewrap` and `socat`). On 
 Windows set `cli_sandbox: false` for the Claude models and accept that their code then has
 network access; the report should say so.
 
-### Why our own sandbox for the free APIs
+### Why our own sandbox for the APIs
 
-Free chat APIs only return text. The model gets one tool, `run_python`, which executes in a
+Chat-completion APIs only return text. The model gets one tool, `run_python`, which executes in a
 Jupyter kernel started in a scratch directory with the three files. Variables persist
 between calls like in the Claude app. Socket connections fail inside the kernel and proxy
 variables point to a closed port, so pip and HTTP fail. Each call has a 120 s limit; a call
@@ -65,7 +65,14 @@ This sandbox is best-effort, not a security boundary: the code runs as the curre
 so a model that went looking could read files elsewhere on the disk. Run it on a machine
 or container where that does not matter.
 
-### Free-tier budgets
+### OpenRouter and free-tier budgets
+
+The `openrouter` entry runs any model on OpenRouter with the same tool loop, prompt and
+60-turn limit as the Claude runs; `--model-id <slug>` picks the model and files the runs
+under the slug's model name. `--check openrouter --model-id <slug>` makes one short call
+that verifies the key, the model id and tool calling before a paid benchmark. The model's
+`reasoning_details` are sent back with each tool call, as OpenRouter expects.
+
 
 Groq's free tier for gpt-oss-120b allows about 8k tokens per minute and 200k per day, so
 its config shows shorter tool outputs (`max_output_chars: 1500`), keeps only the last three
@@ -93,7 +100,7 @@ retries stops that model and the next invocation resumes it.
 ## 3. What a run leaves behind
 
 ```
-outputs/runs/v3_seed42/
+outputs/runs/v5_seed42/
     _data/                      the three files given to the model
     _ground_truth.json          answer key for this config (never given to the model)
     claude-sonnet/full/run_01/
@@ -111,7 +118,7 @@ read from Claude Code's usage report, so a silent fallback would be visible.
 
 ## 4. Report
 
-`python -m edabench.report outputs/runs/v3_seed42` writes:
+`python -m edabench.report outputs/runs/v5_seed42` writes:
 
 - the total per model and variant: count, mean, sd, min, max, format compliance, tool calls;
 - the mean and sd per question (and `heatmap.png`);
@@ -128,8 +135,9 @@ not ranked; the report shows the sd next to every mean for that reason.
 ```bash
 python -m edabench.runner --check claude-haiku                    # isolation preflight, one short run
 python -m edabench.runner --model claude-haiku claude-sonnet --variant full no_quality_hint --runs 5
-python -m edabench.runner --model gemini-flash --runs 5           # needs GEMINI_API_KEY
-python -m edabench.report outputs/runs/v3_seed42
+python -m edabench.runner --check openrouter --model-id <slug>    # needs OPENROUTER_API_KEY
+python -m edabench.runner --model openrouter --model-id <slug> --runs 3
+python -m edabench.report outputs/runs/v5_seed42
 ```
 
 The same as Makefile targets: `make check-claude`, `make bench MODELS="claude-haiku" RUNS=5`,

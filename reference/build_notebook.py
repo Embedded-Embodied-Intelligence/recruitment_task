@@ -349,7 +349,7 @@ F = (g_full.deviance - g_op.deviance) / (g_full.df_resid - g_op.df_resid) / g_op
 print("weighted quasi-binomial GLM, operator within line: p =",
       f"{stats.f.sf(F, g_full.df_resid - g_op.df_resid, g_op.df_resid):.1e}")
 print("weighted quasi-binomial GLM, machine age:          p =", f"{g_full.pvalues['machine_age_years']:.1e}")"""),
-    ("md", """With this seed the weighted GLM declares the operator effect significant at p < 0.001, even though the operators have no effect by construction. Across 20 seeds the empirical-logit OLS recovered exactly the true driver set every time (`tests/test_reference.py`). This is a statistical trap that comes from the noise structure, which is realistic for production data."""),
+    ("md", """With this seed the weighted GLM declares the operator effect significant at p < 0.001, even though the operators have no effect by construction. Across 10 seeds in `tests/test_reference.py` (and 20 in an offline check) the empirical-logit OLS recovered exactly the true driver set every time. This is a statistical trap that comes from the noise structure, which is realistic for production data."""),
     ("code", """name_map = {"mold_temp": "mold_temp", "humidity_pct (all curve terms)": "humidity_pct",
             "cycle_time_s": "cycle_time_s", "shift": "shift", "machine_age_years": "machine_age_years",
             "ambient_temp_c": "ambient_temp_c", "operator_id (within line)": "operator_id"}

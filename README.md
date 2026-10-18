@@ -28,7 +28,7 @@ python -m edabench.scorer reference/reference_answer.json   # score any response
 `eval/ground_truth.json` is the answer key. Only `data/` and `task/prompt.md` are given to the model.
 
 ## Running models (harness)
-`edabench.runner` runs each model N times per prompt variant and scores every answer; `edabench.report` aggregates the runs. Claude models run through `claude -p` on a Pro login, free APIs (Gemini, Groq) through a tool-calling loop with a local Python sandbox. Details: `docs/harness.md`.
+`edabench.runner` runs each model N times per prompt variant and scores every answer; `edabench.report` aggregates the runs. Claude models run through `claude -p` on a Pro login, OpenAI-compatible APIs (OpenRouter with `--model-id`, Gemini, Groq) through a tool-calling loop with a local Python sandbox. Details: `docs/harness.md`.
 
 ```bash
 python -m edabench.runner --check claude-haiku     # verify isolation first

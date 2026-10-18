@@ -40,13 +40,13 @@ If the elements are row indices, row 7 is *not* "almost" row 6: it is a differen
 
 ## 3. Metrics per answer type
 
-### Numbers (A1-A4, C2): linear decay to the naive answer
+### Numbers (A1-A4, C2, C3): linear decay to the naive answer
 
 ```
 s = max(0, 1 - |a - t| / scale)
 ```
 
-A fixed relative tolerance would not work here. In A1 the trap (not removing duplicates) gives 3,060 instead of 3,000, a 2 % error. A 10 % tolerance would award 0.8 to a model that fell for the trap. So **the zero point is set at the naive trap answer**: `scale = |naive - t|`, as computed by the generator from the same data. Falling for the trap scores 0, a small numerical deviation earns almost full credit, and the score drops linearly in between. When several wrong approaches exist, the zero point is the **best** of them (A4: units fixed, drift not fixed), so every worse approach scores 0 too. A floor keeps the scale positive when a trap is switched off (ablation variants).
+A fixed relative tolerance would not work here. In A1, keeping the duplicate exports gives 3,060 instead of 3,000, a 2 % error. A 10 % tolerance would award 0.8 to a model that fell for the trap. So **the zero point is set at the naive trap answer**: `scale = |naive - t|`, as computed by the generator from the same data. Falling for the trap scores 0, a small numerical deviation earns almost full credit, and the score drops linearly in between. When several wrong approaches exist, the zero point is the **best** of them (A4: units fixed, drift not fixed), so every worse approach scores 0 too. A floor keeps the scale positive when a trap is switched off (ablation variants).
 
 The values of the final key (v5, `eval/ground_truth.json`):
 

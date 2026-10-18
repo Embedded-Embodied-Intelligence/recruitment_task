@@ -1,6 +1,6 @@
 """Aggregate scored runs into tables for the write-up.
 
-    python -m edabench.report outputs/runs/v3_seed42
+    python -m edabench.report outputs/runs/v5_seed42
 
 Reads every run_XX/score.json under <root>/<model>/<variant>/ and writes, into <root>:
 - results.csv   one row per run: total, sections, per-question scores and trap hits;
@@ -94,7 +94,8 @@ def summarize(df: pd.DataFrame, set_errors: dict) -> str:
            "`+x` = listed but wrong, `-x` = missed; counts over runs.", ""]
     for (model, variant, qid), c in sorted(set_errors.items()):
         if c:
-            out.append(f"- {model} / {variant} / {qid}: " + ", ".join(f"`{k}` x{v}" for k, v in c.most_common(6)))
+            # Ties sorted by name: Counter keeps insertion order, and set order varies per process.
+            out.append(f"- {model} / {variant} / {qid}: " + ", ".join(f"`{k}` x{v}" for k, v in sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))[:6]))
     out.append("")
 
     variants = set(df["variant"])
