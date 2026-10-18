@@ -38,9 +38,9 @@ explorer: profile
 	python3 -m edabench.explorer outputs/runs/v5_seed42 --out docs/explorer.html
 	python3 -m edabench.explorer outputs/runs/v4_seed42 --out docs/explorer_v4.html
 
-# Six-page write-up (paper/README.md); figures from the published files and the v5 report.
+# Bilingual write-up (paper/README.md); figures and appendix tables come from the repository files.
 paper:
 	python3 paper/figures.py
-	cp outputs/runs/v5_seed42/heatmap.png paper/fig_heatmap_v5.png
+	python3 paper/build_appendix.py
 	cd paper && pdflatex -interaction=nonstopmode main.tex >/dev/null && pdflatex -interaction=nonstopmode main.tex >/dev/null
-	rm -f paper/main.aux paper/main.log paper/main.out
+	rm -f paper/main.aux paper/main.log paper/main.out paper/main.toc

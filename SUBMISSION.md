@@ -96,7 +96,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 
 ## Beyond the four deliverables
 
-- **Paper:** `paper/main.pdf`, a six-page write-up of the task, the measure and the results (LaTeX source `paper/main.tex`, builds on Overleaf).
+- **Paper:** `paper/main.pdf`, a bilingual write-up (the full text in Polish, then in English) of the dataset, the answer key, the prompt, the measure, the v1-to-v5 history and the results, with appendices that quote the deliverables: the schema with sample rows, the full prompt, the measure and one scored response per model (LaTeX source `paper/main.tex`, builds on Overleaf).
 - **Results explorer:** `docs/explorer.html` (v5) and `docs/explorer_v4.html` (v4), self-contained pages (open them in a browser, no install). It shows the score of every model on every question, how often each trap was hit, the failure findings with links to the runs behind them, the calibration history, and each run's answers next to the truth with its full response. Rebuild it with `make explorer`.
 - **Datasheet:** `docs/datasheet.md` documents the dataset in the *Datasheets for Datasets* format: motivation, composition, the generating process, intended uses, contamination and versions.
 - **CI:** `.github/workflows/ci.yml` runs the tests on every push. It also regenerates the data and the answer key and fails if a byte changes, and re-runs the reference notebook, which must still score at least 0.98.
@@ -122,7 +122,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 - **Questions where the correct answer is "not identifiable from these data"**, with their own scoring.
 - **A semi-synthetic variant on real data.** Inject the same traps into a public table (for example from Kaggle). The data-quality answers keep an exact key; the causal ones would need expert judgment, and popular datasets carry a contamination risk, because their EDA notebooks are public.
 - **More model families**, on paid APIs with equal budgets (the OpenRouter entry in `configs/benchmark.yaml`), compared by the skill profile rather than the total.
-- **Traps designed by another model family.** v5 was designed with help from Claude, so its traps may sit where Claude looks. Traps proposed by another family, each with generator code and a recoverability test like the existing ones, would show whether the benchmark favours its designer.
+- **Calibration on another model family.** Every round was calibrated on transcripts of Claude models, so the traps may sit where Claude looks. Runs of another family through the OpenAI-compatible backend, compared by the skill profile, would show whether the difficulty ordering transfers.
 
 ## Reproduce
 

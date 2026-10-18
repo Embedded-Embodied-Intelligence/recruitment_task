@@ -1,6 +1,7 @@
-"""Figure 2 of the paper: the two quiet traps of v5, drawn from the published files only.
+"""Figures of the paper: the two quiet traps of v5 (from the published files only) and the
+mean score per question over the finished v5 runs.
 
-    python paper/figures.py      # writes paper/fig_quiet_traps.png
+    python paper/figures.py      # writes paper/fig_quiet_traps.png and paper/fig_heatmap_finished.png
 """
 
 from pathlib import Path
@@ -51,3 +52,28 @@ for ax in (a, b):
     ax.set_axisbelow(True)
     ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b"))
 fig.savefig(ROOT / "paper" / "fig_quiet_traps.png")
+plt.close(fig)
+
+# Mean score per question over the finished runs; a run that used all turns has no answer to score.
+results = pd.read_csv(ROOT / "outputs" / "runs" / "v5_seed42" / "results.csv")
+finished = results[(results["variant"] == "full") & ~results["hit_turn_limit"]]
+models = [("claude-haiku", "Haiku 5.5"), ("claude-sonnet", "Sonnet 5.5"), ("claude-opus", "Opus 5.5")]
+qcols = [c for c in results.columns if c.startswith("q_")]
+grid = finished.groupby("model")[qcols].mean().loc[[m for m, _ in models]]
+n_runs = finished["model"].value_counts()
+
+ramp = matplotlib.colors.LinearSegmentedColormap.from_list("blue", ["#f3f7fd", SERIES, "#123c70"])
+fig, ax = plt.subplots(figsize=(7.0, 1.75), dpi=300, constrained_layout=True)
+ax.imshow(grid.values, vmin=0, vmax=1, cmap=ramp, aspect="auto")
+ax.set_xticks(range(len(qcols)), [c[2:] for c in qcols])
+ax.set_yticks(range(len(models)), [f"{label} (n={n_runs[m]})" for m, label in models])
+ax.tick_params(length=0)
+for side in ax.spines.values():
+    side.set_visible(False)
+for (i, j), v in pd.DataFrame(grid.values).stack().items():
+    ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=8, color="white" if v > 0.4 else INK)
+ax.set_xticks([x - 0.5 for x in range(1, len(qcols))], minor=True)
+ax.set_yticks([y - 0.5 for y in range(1, len(models))], minor=True)
+ax.grid(which="minor", color="white", linewidth=2)
+ax.tick_params(which="minor", length=0)
+fig.savefig(ROOT / "paper" / "fig_heatmap_finished.png")
