@@ -1,0 +1,6 @@
+model,variant,run,total,describe,salient_features,interpret,format_ok,equal_weight_total,n_tool_calls,duration_s,hit_turn_limit,permission_denials,served_models,q_A1,trap_A1,q_A2,trap_A2,q_A3,trap_A3,q_A4,trap_A4,q_B1,trap_B1,q_B2,trap_B2,q_B3,trap_B3,q_C1,trap_C1,q_C2,trap_C2,q_C3,trap_C3
+claude-haiku,full,run_01,0.99259,1.0,1.0,0.9805,True,0.9943,25,287.1,False,0,claude-haiku-5-5,1.0,False,1.0,False,1.0,False,1.0,False,1.0,,1.0,,1.0,,1.0,True,1.0,False,0.943,False
+claude-haiku,full,run_02,1.0,1.0,1.0,1.0,True,1.0,30,647.1,False,0,claude-haiku-5-5,1.0,False,1.0,False,1.0,False,1.0,False,1.0,,1.0,,1.0,,1.0,True,1.0,False,1.0,False
+claude-haiku,full,run_03,0.884444,1.0,0.660131,1.0,True,0.8888889000000001,18,362.1,False,0,claude-haiku-5-5,1.0,False,1.0,False,1.0,False,1.0,False,0.888889,,1.0,,0.0,,1.0,True,1.0,False,1.0,False
+claude-haiku,full,run_04,0.99967,0.99975,1.0,0.999316,True,0.9997,36,419.8,False,0,claude-haiku-5-5,1.0,False,1.0,False,0.999,False,1.0,False,1.0,,1.0,,1.0,,1.0,True,1.0,False,0.998,False
+claude-haiku,full,run_05,0.97634,1.0,1.0,0.937737,True,0.9818,20,306.8,False,0,claude-haiku-5-5,1.0,False,1.0,False,1.0,False,1.0,False,1.0,,1.0,,1.0,,1.0,True,1.0,False,0.818,False

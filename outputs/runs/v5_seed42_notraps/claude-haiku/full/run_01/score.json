@@ -1,0 +1,111 @@
+{
+  "total": 0.99259,
+  "sections": {
+    "describe": 1.0,
+    "salient_features": 1.0,
+    "interpret": 0.9805
+  },
+  "format_ok": true,
+  "questions": [
+    {
+      "qid": "A1",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 3000,
+      "truth": 3000,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "A2",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 226,
+      "truth": 226,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "A3",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 0.043582,
+      "truth": 0.043582,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "A4",
+      "score": 1.0,
+      "weight": 0.07,
+      "answer": 210.0,
+      "truth": 210.0,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "B1",
+      "score": 1.0,
+      "weight": 0.14,
+      "answer": [
+        "cycle_time_s",
+        "humidity_pct",
+        "mold_temp",
+        "shift"
+      ],
+      "truth": [
+        "cycle_time_s",
+        "humidity_pct",
+        "mold_temp",
+        "shift"
+      ],
+      "note": "",
+      "trap_hit": null
+    },
+    {
+      "qid": "B2",
+      "score": 1.0,
+      "weight": 0.1,
+      "answer": [],
+      "truth": [],
+      "note": "",
+      "trap_hit": null
+    },
+    {
+      "qid": "B3",
+      "score": 1.0,
+      "weight": 0.1,
+      "answer": null,
+      "truth": null,
+      "note": "",
+      "trap_hit": null
+    },
+    {
+      "qid": "C1",
+      "score": 1.0,
+      "weight": 0.12,
+      "answer": "Beta",
+      "truth": "Beta",
+      "note": "",
+      "trap_hit": true
+    },
+    {
+      "qid": "C2",
+      "score": 1.0,
+      "weight": 0.13,
+      "answer": 72.3,
+      "truth": 72.3,
+      "note": "",
+      "trap_hit": false
+    },
+    {
+      "qid": "C3",
+      "score": 0.943,
+      "weight": 0.13,
+      "answer": 0.043525,
+      "truth": 0.043582,
+      "note": "",
+      "trap_hit": false
+    }
+  ]
+}

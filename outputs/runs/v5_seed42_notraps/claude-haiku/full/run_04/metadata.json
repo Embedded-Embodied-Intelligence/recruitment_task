@@ -1,0 +1,91 @@
+{
+  "model": "claude-haiku",
+  "backend": "claude_cli",
+  "model_id": "claude-haiku-5-5",
+  "effort": "medium",
+  "variant": "full",
+  "started_utc": "2026-10-18T10:39:56+00:00",
+  "duration_s": 419.8,
+  "temperature": null,
+  "max_turns": 60,
+  "hit_turn_limit": false,
+  "n_model_calls": 37,
+  "n_tool_calls": 36,
+  "usage": {
+    "usage": {
+      "input_tokens": 74,
+      "cache_creation_input_tokens": 82600,
+      "cache_read_input_tokens": 1938051,
+      "output_tokens": 55989,
+      "output_tokens_details": {
+        "thinking_tokens": 32443
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 82600,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1907,
+          "cache_read_input_tokens": 94145,
+          "cache_creation_input_tokens": 1627,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 1627
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {
+      "claude-haiku-5-5": {
+        "inputTokens": 74,
+        "outputTokens": 55989,
+        "cacheReadInputTokens": 1938051,
+        "cacheCreationInputTokens": 82600,
+        "webSearchRequests": 0,
+        "costUSD": 2.1684862000000007,
+        "contextWindow": 200000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 32443,
+        "canonicalModel": "claude-haiku-5-5",
+        "provider": "firstParty",
+        "costBasis": "unknown"
+      }
+    },
+    "total_cost_usd": 2.1684862000000007,
+    "duration_api_ms": 288183,
+    "permission_denials": 0
+  },
+  "prompt_sha256": "c18d113ded56edc2",
+  "data_sha256": {
+    "batches.csv": "c6a5d0acf56ca3b1",
+    "suppliers.csv": "1726328eb7c109e2",
+    "maintenance.csv": "75d589a39e1f54da"
+  },
+  "dataset_version": "v5",
+  "seed": 42,
+  "versions": {
+    "python": "3.14.7",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "scipy": "1.18.1",
+    "statsmodels": "0.15.0",
+    "matplotlib": "3.11.2",
+    "openai": "3.32.0",
+    "claude_code": "2.1.285 (Claude Code)"
+  },
+  "served_models": [
+    "claude-haiku-5-5"
+  ]
+}

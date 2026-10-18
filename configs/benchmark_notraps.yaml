@@ -1,0 +1,71 @@
+# Ablation: copy of benchmark.yaml with every trap off; a run on it should score ~1.0.
+# Experiment definition. API keys are read from the environment variables named here.
+seed: 42
+n_runs: 5
+temperature: 1.0   # provider default; we measure typical behaviour, not a cherry-picked greedy run
+
+dataset:
+  n_batches: 3000
+
+# Each trap (docs/task_design.md, section 4) can be switched off for ablation runs;
+# a variant without traps should score ~1.0. Missing names default to on, unknown names fail.
+traps:
+  duplicates: false          # T1
+  hidden_missing: false      # T2
+  mixed_units: false         # T3
+  inconsistent_labels: false # T4
+  aggregation: false         # T5
+  nonlinear_effect: false    # T6
+  confounding: false         # T7
+  leakage: false             # T8
+  simpson_paradox: false     # T9
+  regime_change: false       # T10
+  interaction: false         # T11 (v3)
+  sensor_drift: false        # T12 (v3)
+  hidden_driver: false       # T13 (v3)
+  mediator: false            # T14 (v4)
+  date_formats: false        # T15 (v4)
+  real_process_change: false # T16 (v4)
+  detection_change: false    # T17 (v4)
+  id_collisions: false       # T18 (v5)
+  frozen_sensor: false       # T19 (v5)
+  unlogged_cleanings: false  # T20 (v5)
+
+# Model ids are pinned (no aliases such as "sonnet"), so a rerun hits the same model.
+# claude_cli runs Claude Code in print mode on the operator's Pro login (edabench/backends.py);
+# openai_compatible runs our tool loop against a free API, key from the named env var.
+models:
+  - name: claude-haiku
+    backend: claude_cli
+    model_id: claude-haiku-5-5
+    effort: medium            # Claude Code's default for 5.5 models; thinking cannot be switched off
+    max_turns: 60             # agent turns; claude -p stops without an answer at the limit
+  - name: claude-sonnet
+    backend: claude_cli
+    model_id: claude-sonnet-5-5
+    effort: medium            # the setting of pilots 01 and 02 in the Claude app
+    max_turns: 60
+  - name: claude-opus
+    backend: claude_cli
+    model_id: claude-opus-5-5
+    effort: medium
+    max_turns: 60
+  # Not benchmarked on v4: the free tier allows 20 requests a day for this model (2026-10-17),
+  # and one run needs up to 60. Kept for a paid key.
+  - name: gemini-flash
+    backend: openai_compatible
+    model_id: gemini-3.8-flash
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_API_KEY
+    min_interval_s: 7         # free tier ~10 requests per minute
+  - name: gpt-oss-120b
+    backend: openai_compatible
+    model_id: openai/gpt-oss-120b
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    # Groq's free tier allows ~8k tokens per minute and ~200k per day, so the context is
+    # kept small: shorter tool outputs, only the last few kept, fewer turns.
+    max_turns: 25
+    max_output_chars: 1500
+    keep_tool_outputs: 3
+    min_interval_s: 20
