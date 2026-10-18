@@ -96,6 +96,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 
 ## Beyond the four deliverables
 
+- **Paper:** `paper/main.pdf`, a six-page write-up of the task, the measure and the results (LaTeX source `paper/main.tex`, builds on Overleaf).
 - **Results explorer:** `docs/explorer.html` (v5) and `docs/explorer_v4.html` (v4), self-contained pages (open them in a browser, no install). It shows the score of every model on every question, how often each trap was hit, the failure findings with links to the runs behind them, the calibration history, and each run's answers next to the truth with its full response. Rebuild it with `make explorer`.
 - **Datasheet:** `docs/datasheet.md` documents the dataset in the *Datasheets for Datasets* format: motivation, composition, the generating process, intended uses, contamination and versions.
 - **CI:** `.github/workflows/ci.yml` runs the tests on every push. It also regenerates the data and the answer key and fails if a byte changes, and re-runs the reference notebook, which must still score at least 0.98.
