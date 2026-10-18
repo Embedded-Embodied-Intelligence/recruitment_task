@@ -86,7 +86,7 @@ On v4 the losses were mostly estimation errors after detection: Opus estimated t
 - **The A1 trap was louder than intended.** Every run found the batch numbers shared by two lines, so T18 costs no points; the prompt's remark about the MES terminal is a stronger clue than needed.
 - **Haiku's turn-limit failures** measure the budget as much as the analysis. The 60-turn limit is the same for every version and model; two of five Haiku runs reached it on v5 and none on v4 (full prompt).
 - **The C3 wording was fixed in v5.** On v4 two runs answered with the true-process rate (corrected for the weaker L3 inspection) rather than the recorded rate. v5 says the rate is computed from the recorded `defective_units`; the v4 runs keep the old wording.
-- **Only one model family has been benchmarked.** The harness also supports OpenAI-compatible free APIs, but Gemini's free tier (20 requests a day) cannot fit one run, and the Groq runs of gpt-oss-120b were not finished in time.
+- **One model family, as the task asks for one LLM.** I benchmarked three Claude 5.5 models of different sizes; other families may score differently. The harness also supports OpenAI-compatible APIs, but the free tiers I tried were too small for a fair comparison: Gemini allows 20 requests a day, and Groq fits gpt-oss-120b only with a trimmed context.
 - **The score depends on the environment as well as the model.** The same model scored 0.87 in the app without statsmodels and 0.98 in the CLI with it. Library versions are recorded in every run's `metadata.json`.
 - **One seed** for model runs. The generator can produce fresh variants for contamination checks (`data/CANARY.txt`).
 
